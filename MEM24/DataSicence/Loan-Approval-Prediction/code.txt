@@ -31,13 +31,6 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.utils import class_weight
 
 
-
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping
-
 import plotly.graph_objects as go
 from pandas.plotting import parallel_coordinates
 
@@ -45,10 +38,12 @@ import warnings
 warnings.filterwarnings("ignore")
 
 print("reading csv file")
+####################################################
+
 # reading csv file
 df = pd.read_csv('/content/sample_data/loan.csv')
 
-
+####################################################
 print("\n>>>>>>>>>>>>>> Printing first five rows of dataset")
 # printing first five rows of dataset
 print(df.head(5))
@@ -64,14 +59,23 @@ print(df.shape)
 print("\n>>>>>>>>>>>>>> Display the list the columns")
 print(df.columns)
 
+####################################################
+#Rename columuns Self_Employed, Credit_History, Loan_Amount_Term
+df = df.rename(columns={'Self_Employed' : 'SelfEmployed'})
+df = df.rename(columns={'Credit_History' : 'CreditHistory'})
+df = df.rename(columns={'Loan_Amount_Term' : 'LoanAmountTerm'})
+df = df.rename(columns={'Property_Area' : 'PropertyArea'})
+
 print("\n>>>>>>>>>>>>>> Statistical summary of dataset")
 # Statistical summary of dataset
 df.info()
 
+####################################################
 print("\n>>>>>>>>>>>>>> Calculate summary statistics for numerical columns ")
 #Calculate summary statistics for numerical columns using describe()
 print(df.describe())
 
+####################################################
 print("\n>>>>>>>>>>>>>> Calculate the total of null values")
 # Calculate the total of null values
 print(df.isnull().sum().sum())
@@ -82,6 +86,7 @@ df.isnull().sum()
 sns.heatmap(df.isnull(), cbar=True, cmap='inferno')
 plt.show()
 
+####################################################
 print("\n>>>>>>>>>>>>>> Find the duplicated rows")
 #Find the duplicated rows
 print(df.duplicated().sum())
@@ -91,6 +96,7 @@ print("Calculate the percentage of duplicated rows")
 # Calculate the percentage of duplicated rows
 percent_duplication = df.duplicated().sum() / df.shape[0]
 print(f"Percentage of duplicated rows: {percent_duplication * 100:.2f}%")
+
 
 print("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
 # Check if there are any duplicated rows and if the percentage is less than 5%
@@ -104,6 +110,7 @@ else:
 # Optional: print the percentage of duplication
 print(f"Percentage of duplicated rows: {percent_duplication * 100:.2f}%")
 
+####################################################
 print("\n>>>>>>>>>>>>>> Dealing with Categorical values")
  # Dealing with Categorical values
 
@@ -116,6 +123,7 @@ df['Married'] = df['Married'].map({'No':0,'Yes':1})
 # Loan_Status column
 df['Loan_Status'] =df['Loan_Status'].map({'N':0,'Y':1})
 
+####################################################
 #Missing Value
 # Gender column
 df['Gender'] = df['Gender'].fillna(df['Gender'].mode()[0])
@@ -124,43 +132,33 @@ df['Married'] = df['Married'].fillna(df['Married'].mode()[0])
 # Dependents Column
 df['Dependents'] = df['Dependents'].fillna(df['Dependents'].mode()[0])
 # Self_Employed Column
-df['Self_Employed'].fillna('No',inplace=True)
+df['SelfEmployed'].fillna('No',inplace=True)
 # Credit_History Column
-df['Credit_History'] = df['Credit_History'].fillna(df['Credit_History'].mode()[0])
+df['CreditHistory'] = df['CreditHistory'].fillna(df['CreditHistory'].mode()[0])
 # LoanAmount Column
 df['LoanAmount'] = df['LoanAmount'].fillna(df['LoanAmount'].median())
 # Loan_Amount Column
-df['Loan_Amount_Term'] = df['Loan_Amount_Term'].fillna(df['Loan_Amount_Term'].mode()[0])
+df['LoanAmountTerm'] = df['LoanAmountTerm'].fillna(df['LoanAmountTerm'].mode()[0])
+# PropertyArea Column
+df['PropertyArea'] = df['PropertyArea'].fillna(df['PropertyArea'].mode()[0])
 
-
+####################################################
 # Counting the accurance of each value in Gender column
 df['Gender'].value_counts()
 
 
-plt.figure(figsize=(15, 6))
+plt.figure(figsize=(12, 4))
 sns.countplot(x='Gender', data=df, palette='hls')
 plt.show()
 
-# Counting the accurance of each value in Dependent column
-df['Dependents'].value_counts()
-
-plt.figure(figsize=(15,6))
-#sns.countplot('Dependents', data = df, palette='hls')
-plt.show()
-
 # comparing loan status with gender column
-plt.figure(figsize=(15,6))
+plt.figure(figsize=(12,4))
 sns.countplot(x = 'Gender',hue ='Loan_Status', data=df , palette='hls')
 plt.show()
 
-#More males are on loan than females. Also, those that are on loan are more than otherwise
-# comparing loan status with married column
-plt.figure(figsize = (15,6))
-sns.countplot( x='Married', hue ='Loan_Status', data = df)
-
 #Married people collect more loan than unmarried
 #Counting the occurence of each value with Loan_amount_term column
-df['Loan_Amount_Term'].value_counts()
+df['LoanAmountTerm'].value_counts()
 plt.figure(figsize=(15,6))
 #sns.countplot('Loan_Amount_Term', data = df, palette='hls')
 plt.xticks(rotation = 90)
@@ -172,6 +170,7 @@ plt.figure(figsize=(15,10))
 sns.boxplot(data=df)
 plt.show()
 
+####################################################
 print("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
 dfOutliers = df[['ApplicantIncome', 'CoapplicantIncome']]
 # Calculate Q1, Q3, and IQR
@@ -293,40 +292,239 @@ else:
     print("We can not remove all outliers, percengtage is higer than 5%")
 
 
+####################################################
+print("\n>>>>>>>>>>>>>> #DATA visulazation")
+#DATA visulazation
+d_labels = ['Male', 'Female']
+g_labels = ['Graduate', 'Not Graduate']
+l_labels = ['NO', 'YES']
+p_labels = ['Urban', 'Rural', 'Semiurban']
+
+
+# Create subplots: use 'domain' type for Pie subplot
+fig = make_subplots(rows=1, cols=4, specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]])
+fig.add_trace(go.Pie(labels=d_labels, values=df['Gender'].value_counts(), name="Gender"),
+              1, 1)
+fig.add_trace(go.Pie(labels=g_labels, values=df['Education'].value_counts(), name="Education"),
+              1, 2)
+fig.add_trace(go.Pie(labels=p_labels, values=df['PropertyArea'].value_counts(), name="PropertyArea"),
+              1, 3)
+fig.add_trace(go.Pie(labels=l_labels, values=df['Loan_Status'].value_counts(), name="Loan_Status"),
+              1, 4)
+
+
+# Use `hole` to create a donut-like pie chart
+fig.update_traces(hole=.4, hoverinfo="label+percent+name", textfont_size=16)
+
+fig.update_layout(
+    title_text="Gender Education and Loan Status Distributions",
+    # Add annotations in the center of the donut pies.
+    annotations=[dict(text='Gender', x=0.1, y=0.3, font_size=20, showarrow=False),
+                 dict(text='Education', x=0.3, y=0.6, font_size=20, showarrow=False),
+                 dict(text='PropertyArea', x=0.6, y=0.9, font_size=20, showarrow=False),
+                 dict(text='Loan Status', x=0.9, y=0.5, font_size=20, showarrow=False)])
+fig.show()
+
+####################################################
+# Find the most repeated Dependents value for each Loan_Status
+mode_dependents = df.groupby('Loan_Status')['Dependents'].apply(lambda x: x.mode().iloc[0]).to_dict()
+
+# Replace None values in Dependents column based on Loan_Status
+for index, row in df.iterrows():
+    if pd.isnull(row['Dependents']):
+        df.at[index, 'Dependents'] = mode_dependents[row['Loan_Status']]
+
+# Group by dependents the employees who got a loan
+loan_yes_counts = df[df["Loan_Status"] == 1].groupby("Dependents").size().tolist()
+
+# Group by dependents the employees who didn't get a loan
+loan_no_counts = df[df["Loan_Status"] == 0].groupby("Dependents").size().tolist()
+
+
+# Group by dependents the employees who got a loan
+loan_yes_counts = df[df["Loan_Status"] == 1].groupby("Dependents").size()
+
+# Group by dependents the employees who didn't get a loan
+loan_no_counts = df[df["Loan_Status"] == 0].groupby("Dependents").size()
+
+
+# Data for the outer pie chart (distribution of loan status by dependents)
+labels_dependents = ["Zero", "One", "Two", "Three+", "Zero", "One", "Two", "Three+"]
+sizes_dependents = [
+    loan_yes_counts.get('0', 0), loan_yes_counts.get('1', 0), loan_yes_counts.get('2', 0), loan_yes_counts.get('3+', 0),
+    loan_no_counts.get('0', 0), loan_no_counts.get('1', 0), loan_no_counts.get('2', 0), loan_no_counts.get('3+', 0)
+]
+
+labels_loan =["Loan: Yes", "Loan: No"]
+values_loan = [sum(loan_yes_counts), sum(loan_no_counts)]
+
+# Colors
+colors_loan = ['#ff6666', '#66b3ff']
+colors_dependents = ['#d8d8e9', '#c2c2f0', '#ffb3e6', '#b3ffb3', '#d8d8e9', '#c2c2f0', '#ffb3e6', '#b3ffb3']
+
+# Explode
+explode = (0.3,0.3) 
+explode_dependents = (0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+
+# Plot
+plt.figure(figsize=(10, 10))
+textprops = {"fontsize":10}
+
+#Plot
+plt.pie(values_loan, labels=labels_loan,autopct='%1.1f%%',pctdistance=1.08, labeldistance=0.8,colors=colors_loan, startangle=90,frame=True, explode=explode,radius=10, textprops =textprops, counterclock = True, )
+plt.pie(sizes_dependents,labels=labels_dependents,colors=colors_dependents,startangle=90, explode=explode_dependents,radius=7, textprops =textprops, counterclock = True, )
+#Draw circle
+centre_circle = plt.Circle((0,0),5,color='black', fc='white',linewidth=0)
+fig = plt.gcf()
+fig.gca().add_artist(centre_circle)
+
+# Set equal aspect ratio
+plt.axis('equal')
+
+plt.title('Loan Status Distribution w.r.t Dependents: Zero, One, Two, Three+', fontsize=14, y=1)
+plt.show()
+
+####################################################
+# Set the style and context for seaborn
+sns.set_context("paper", font_scale=1.1)
+
+# Create two subplots side by side
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+# Plot 1: Distribution of Loan Amount Term by Loan Approval
+sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[0])
+sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[0])
+axes[0].legend(["No Loan", "Loan"], loc='upper right')
+axes[0].set_ylabel('Density')
+axes[0].set_xlabel('Loan Amount Term')
+axes[0].set_title('Distribution of Loan Amount Term by Loan Approval')
+
+# Plot 2: Distribution of Loan Amount by Loan Approval
+sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[1])
+sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[1])
+axes[1].legend(["No Loan", "Loan"], loc='upper right')
+axes[1].set_ylabel('Density')
+axes[1].set_xlabel('Loan Amount')
+axes[1].set_title('Distribution of Loan Amount by Loan Approval')
+
+# Adjust layout to prevent overlap
+plt.tight_layout()
+
+# Show the plots
+plt.show()
+
+####################################################
 # plotting boxplot
-plt.figure(figsize=(15,6))
+plt.figure(figsize=(12,4))
 sns.boxplot(x='Loan_Status',y = 'ApplicantIncome', data=df)
 plt.show()
 
-plt.figure(figsize=(15,6))
+plt.figure(figsize=(12,4))
 sns.boxplot(x='Loan_Status',y = 'CoapplicantIncome', data=df)
 plt.show()
-
-
 
 
 # Showing correlation through heatmap
 plt.figure(figsize=(7,7))
 #sns.heatmap(df.corr())
 
-plt.figure(figsize=(15,6))
-sns.countplot(x = 'Property_Area', hue='Loan_Status', data = df)
+# Drop multiple columns
+columns_to_drop = ['Loan_ID']
+df.drop(columns_to_drop, axis=1, inplace=True)
 
-#Semiurban obtain more loan, folowed by Urban and then rural.
-plt.figure(figsize=(15,6))
-sns.countplot(x = 'Credit_History', hue='Loan_Status', data = df)
+####################################
+# Create a figure with multiple subplots
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
-#According to the credit history, greater number of people pay back their loans.
-plt.figure(figsize=(15,6))
-sns.countplot(x = 'Loan_Amount_Term', hue='Loan_Status', data = df)
+# Plot 1: Property Area vs. Loan Status
+sns.countplot(x='PropertyArea', hue='Loan_Status', data=df, ax=axes[0, 0])
+axes[0, 0].set_title('Property Area vs. Loan Status')
 
-#An extremely high number of them go for a 360 cyclic loan term. That’s pay back within a year
+# Plot 2: Credit History vs. Loan Status
+sns.countplot(x='CreditHistory', hue='Loan_Status', data=df, ax=axes[0, 1])
+axes[0, 1].set_title('Credit History vs. Loan Status')
 
-plt.figure(figsize=(15,6))
-sns.countplot( x = 'Self_Employed', hue = 'Loan_Status', data = df)
+# Plot 3: Gender vs. Loan Status
+sns.countplot(x='Gender', hue='Loan_Status', data=df, ax=axes[0, 2])
+axes[0, 2].set_title('Gender vs. Loan Status')
+
+# Plot 4: Loan Amount Term vs. Loan Status
+sns.countplot(x='LoanAmountTerm', hue='Loan_Status', data=df, ax=axes[1, 0])
+axes[1, 0].set_title('Loan Amount Term vs. Loan Status')
+
+# Plot 5: Self Employed vs. Loan Status
+sns.countplot(x='SelfEmployed', hue='Loan_Status', data=df, ax=axes[1, 1])
+axes[1, 1].set_title('Self Employed vs. Loan Status')
+
+# Plot 6: Married vs. Loan Status
+sns.countplot(x='Married', hue='Loan_Status', data=df, ax=axes[1, 2])
+axes[1, 2].set_title('Married vs. Loan Status')
+
+# Adjust layout to prevent overlap
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+
+
+##################################################
+
+
+num_cols = 3
+num_rows = (len(df.columns) + num_cols - 1) // num_cols
+
+# Create a figure and axes
+fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
+
+# Flatten the axes if needed
+axes = axes.flatten()
+
+# Loop through each column and plot the distribution
+for i, column in enumerate(df.columns):
+    sns.histplot(df[column], kde=True, ax=axes[i])
+    axes[i].set_title(f'Distribution of {column} based on count')
+
+# Hide any unused subplots
+for j in range(i+1, len(axes)):
+    axes[j].axis('off')
+
+# Adjust layout
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+
+# Create subplots
+fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
+
+# Flatten the axes if needed
+axes = axes.flatten()
+
+# Iterate through each feature column (excluding the target variable)
+for i, column in enumerate(df.columns[:-1]):
+    # Plot scatter plot
+    sns.scatterplot(x=df[column], y=df['Loan_Status'], ax=axes[i])
+    axes[i].set_title(f'Scatter Plot: {column} vs Loan_Status')
+    axes[i].set_xlabel(column)
+    axes[i].set_ylabel('Loan_Status')
+
+# Hide any unused subplots
+for j in range(i+1, len(axes)):
+    axes[j].axis('off')
+
+# Adjust layout
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+
+##############################################
+
+from sklearn.metrics import accuracy_score
+
 
 X = df[['Gender', 'Married', 'ApplicantIncome', 'LoanAmount',
-'Credit_History']]
+'CreditHistory']]
 y = df.Loan_Status
 
 print('Data Splitting')
@@ -335,34 +533,376 @@ print('Data Splitting')
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2,
 random_state = 10)
 
+
+####missing normalization
+
+#TODO
+
+# Confusion Matrix
+fig, axes = plt.subplots(2, 3, figsize=(8, 10))
+####################################################
+# DecisionTree Model
+model_tree = DecisionTreeClassifier()
+model_tree.fit(X_train, y_train)
+predicted_y = model_tree.predict(X_test)
+
+scoreTrainTree = model_tree.score(X_train, y_train)
+print('Accuracy DecisionTree train: ', scoreTrainTree)
+scoreTestTree = model_tree.score(X_test, y_test)
+print('Accuracy DecisionTree test: ', scoreTestTree)
+
+#Confusion Matrix
+#plt.figure(figsize=(4,3))
+sns.heatmap(confusion_matrix(y_test, predicted_y),
+                annot=True,fmt = "d",linecolor="k",linewidths=3)
+    
+axes[0, 0].set_title("Decision Tree CONFUSION MATRIX",fontsize=14)
+#plt.show()
+
+#classification_report precision, recall, f1_score
+print(classification_report(y_test, predicted_y))
+
+
+####################################################
+#Logistic Regression
+model_logistic = LogisticRegression()
+model_logistic.fit(X_train, y_train)
+
+predicted_y = model_logistic.predict(X_test)
+
+scoreTrainLogistic = model_logistic.score(X_train, y_train)
+print('Accuracy Logistic train: ', scoreTrainLogistic)
+scoreTestLogistic = model_logistic.score(X_test, y_test)
+print('Accuracy Logistic test: ', scoreTestLogistic)
+
+#Confusion Matrix
+#plt.figure(figsize=(4,3))
+sns.heatmap(confusion_matrix(y_test, predicted_y),
+                annot=True,fmt = "d",linecolor="k",linewidths=3)
+    
+axes[0,1].set_title("Logistic regression CONFUSION MATRIX",fontsize=14)
+#plt.show()
+
+print(classification_report(y_test, predicted_y))
+
+####################################################
 #Random forest algorithm
-model = RandomForestClassifier(max_depth=4, random_state = 10)
-model.fit(X_train, y_train)
+model_rand_forest  = RandomForestClassifier(max_depth=4, random_state = 10)
+model_rand_forest.fit(X_train, y_train)
 
 RandomForestClassifier(max_depth=4, random_state=10)
-pred_cv = model.predict(X_test)
-accuracy_score(y_test,pred_cv)
+predicted_y = model_rand_forest.predict(X_test)
 
-pred_train = model.predict(X_train)
-print("Accuracy Random forest algorithm: ",accuracy_score(y_train,pred_train))
+scoreTrainForest = model_rand_forest.score(X_train, y_train)
+print('Accuracy Random forest train: ', scoreTrainForest)
+scoreTestForest = model_rand_forest.score(X_test, y_test)
+print('Accuracy Random forest test: ', scoreTestForest)
 
-#Logistic Regression
-model = LogisticRegression()
-model.fit(X_train, y_train)
-LogisticRegression()
-from sklearn.metrics import accuracy_score
-y_pred= model.predict(X_train)
-print("Accuracy Logistic Regression : ",accuracy_score(y_pred,y_train))
+#Confusion Matrix
+#plt.figure(figsize=(4,3))
+sns.heatmap(confusion_matrix(y_test, predicted_y),
+                annot=True,fmt = "d",linecolor="k",linewidths=3)
+    
+axes[0,2].set_title("Random forest CONFUSION MATRIX",fontsize=14)
+#plt.show()
 
+print(classification_report(y_test, predicted_y))
+
+
+####################################################
+# K Nearest Neighbors Model
+model_knn = KNeighborsClassifier(n_neighbors=5)
+model_knn.fit(X_train, y_train)
+predicted_knn_y = model_knn.predict(X_train)
+
+# Accuracy Scores
+scoreTrainKnn = model_knn.score(X_train, y_train)
+print('Accuracy K Nearest Neighbors train: ', scoreTrainKnn)
+scoreTestKnn = model_knn.score(X_test, y_test)
+print('Accuracy K Nearest Neighbors test: ', scoreTestKnn)
+
+#Confusion Matrix
+#plt.figure(figsize=(4,3))
+sns.heatmap(confusion_matrix(y_test, predicted_y),
+                annot=True,fmt = "d",linecolor="k",linewidths=3)
+    
+axes[1,0].set_title("SVM K Nearest Neighbors MATRIX",fontsize=14)
+#plt.show()
+
+print(classification_report(y_test, predicted_y))
+
+####################################################
+# Naive Bayes Model
+model_nb = GaussianNB()
+model_nb.fit(X_train, y_train)
+predicted_nb_y = model_nb.predict(X_train)
+
+# Accuracy Scores
+scoreTrainNb = model_nb.score(X_train, y_train)
+print('Accuracy Naive Bayes train: ', scoreTrainNb)
+scoreTestNb = model_nb.score(X_test, y_test)
+print('Accuracy Naive Bayes test: ', scoreTestNb)
+
+
+#Confusion Matrix
+#plt.figure(figsize=(4,3))
+sns.heatmap(confusion_matrix(y_test, predicted_y),
+                annot=True,fmt = "d",linecolor="k",linewidths=3)
+    
+axes[1,1].set_title("SVM Naive Bayes MATRIX",fontsize=14)
+#plt.show()
+
+print(classification_report(y_test, predicted_y))
+
+
+####################################################
 #Linear svm
-model = SGDClassifier(alpha=0.001, random_state=5, max_iter=15, tol=None)
-model.fit(X_train, y_train)
+model_svm = SGDClassifier(alpha=0.001, random_state=5, max_iter=15, tol=None)
+model_svm.fit(X_train, y_train)
 SGDClassifier(alpha=0.001, max_iter=15, random_state=5, tol=None)
-from sklearn.metrics import accuracy_score
-y_pred = model.predict(X_train)
-print("Accuracy Linear svm: ",accuracy_score(y_pred,y_train))
+
+predicted_y = model_svm.predict(X_test)
+
+scoreTrainSvm = model_svm.score(X_train, y_train)
+print('Accuracy Linear svm train: ', scoreTrainSvm)
+scoreTestSvm = model_svm.score(X_test, y_test)
+print('Accuracy Linear svm test: ', scoreTestSvm)
+
+#Confusion Matrix
+#plt.figure(figsize=(4,3))
+sns.heatmap(confusion_matrix(y_test, predicted_y),
+                annot=True,fmt = "d",linecolor="k",linewidths=3)
+    
+axes[1,2].set_title("SVM CONFUSION MATRIX",fontsize=14)
+#plt.show()
+
+print(classification_report(y_test, predicted_y))
+plt.tight_layout()
+plt.show()
+
+####################################################
+#Model comparaision
+
+#logistics
+logit_roc_auc = roc_auc_score(y_test, model_logistic.predict(X_test))
+fpr, tpr, thresholds = roc_curve(y_test, model_logistic.predict_proba(X_test)[:,1])
+
+# Random Forest
+rf_roc_auc = roc_auc_score(y_test, model_rand_forest.predict(X_test))
+rf_fpr, rf_tpr, rf_thresholds = roc_curve(y_test, model_rand_forest.predict_proba(X_test)[:,1])
+
+# model tree
+modelTree_roc_auc = roc_auc_score(y_test, model_tree.predict(X_test))
+modelTree_fpr, modelTree_tpr, modelTree_thresholds = roc_curve(y_test, model_tree.predict_proba(X_test)[:,1])
+
+# Naive Bayes 
+nb_roc_auc = roc_auc_score(y_test, model_nb.predict(X_test))
+nb_fpr, nb_tpr, nb_thresholds = roc_curve(y_test, model_nb.predict_proba(X_test)[:,1])
+
+# K Nearest Neighbors 
+kn_roc_auc = roc_auc_score(y_test, model_knn.predict(X_test))
+kn_fpr, kn_tpr, kn_thresholds = roc_curve(y_test, model_knn.predict_proba(X_test)[:,1])
+
+# svm
+model_svm = SVC(kernel='linear', probability=True)
+model_svm.fit(X_train, y_train)
+
+svm_roc_auc = roc_auc_score(y_test, model_svm.predict(X_test))
+svm_fpr, svm_tpr, svm_thresholds = roc_curve(y_test, model_svm.predict_proba(X_test)[:,1])
 
 
+plt.figure()
+plt.plot(fpr, tpr, label='Logistic Regression (area = %0.2f)' % logit_roc_auc)
+plt.plot(rf_fpr, rf_tpr, label='Random Forest (area = %0.2f)' % rf_roc_auc)
+plt.plot(modelTree_fpr, modelTree_tpr, label='Decison Tree (area = %0.2f)' % modelTree_roc_auc)
+plt.plot(nb_fpr, nb_tpr, label='Naive Bayes (area = %0.2f)' % nb_roc_auc)
+plt.plot(kn_fpr, kn_tpr, label='K Nearest Neighbors (area = %0.2f)' % kn_roc_auc)
+plt.plot(svm_fpr, svm_tpr, label='svm (area = %0.2f)' % svm_roc_auc)
+
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic')
+plt.legend(loc="lower right")
+plt.show()
+
+
+####################################################
+#Model importance feature
+
+feature_labels = np.array(['Gender', 'Married', 'Dependents', 'Education', 'SelfEmployed', 
+                           'ApplicantIncome', 'LoanAmount', 'LoanAmountTerm', 'CreditHistory' ])
+#'PropertyArea' 'CoapplicantIncome'
+
+importance = model_rand_forest.feature_importances_
+
+feature_indexes_by_importance = importance.argsort()
+for index in feature_indexes_by_importance:
+    print('{}    -> {:.2f}%'.format(feature_labels[index], (importance[index] *100.0)))
+
+# Create a DataFrame to store the evaluation metrics for each model
+model_metrics = pd.DataFrame(columns=['Model', 'Accuracy', 'Precision', 'Recall', 'F1-score'])
+
+# Function to calculate evaluation metrics and add them to the DataFrame
+def evaluate_model(model, model_name, X_test, y_test):
+    # Predict labels
+    y_pred = model.predict(X_test)
+    
+    # Calculate evaluation metrics
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    
+    # Add metrics to the DataFrame
+    model_metrics.loc[len(model_metrics)] = [model_name, accuracy, precision, recall, f1]
+
+# Evaluate each model and add metrics to the DataFrame
+evaluate_model(model_logistic, 'Logistic Regression', X_test, y_test)
+evaluate_model(model_tree, 'Decision Tree', X_test, y_test)
+evaluate_model(model_rand_forest, 'Random Forest', X_test, y_test)
+evaluate_model(model_knn, 'K Nearest Neighbors', X_test, y_test)
+evaluate_model(model_nb, 'Naive Bayes', X_test, y_test)
+evaluate_model(model_svm, 'SVM', X_test, y_test)
+
+
+# Apply styles to highlight the highest metric for each model
+def highlight_max(s):
+    is_max = s == s.max()
+    return ['background-color: yellow' if v else '' for v in is_max]
+
+# Apply the style to the DataFrame
+styled_model_metrics = model_metrics.style.apply(highlight_max, subset=['Accuracy', 'Precision', 'Recall', 'F1-score'])
+
+# Save the styled DataFrame to an HTML file
+styled_model_metrics_file = "model_metrics.html"
+styled_model_metrics_html = styled_model_metrics.to_html()
+with open(styled_model_metrics_file, "w") as f:
+    f.write(styled_model_metrics_html)
+
+print("Styled model metrics saved to:", styled_model_metrics_file)
+
+# Define the models and their corresponding evaluation metrics
+models = ['Logistic Regression', 'Decision Tree', 'Random Forest', 'K Nearest Neighbors', 'Naive Bayes', 'SVM']
+metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
+
+# Initialize lists to store the metrics for each model
+accuracies = []
+precisions = []
+recalls = []
+f1_scores = []
+
+# Populate the lists with the metrics for each model
+for model_name in models:
+    model_metrics_row = model_metrics[model_metrics['Model'] == model_name].iloc[0]
+    accuracies.append(model_metrics_row['Accuracy'])
+    precisions.append(model_metrics_row['Precision'])
+    recalls.append(model_metrics_row['Recall'])
+    f1_scores.append(model_metrics_row['F1-score'])
+
+fig = go.Figure()
+# Add bar comparison between metrics for each model
+for model_name in models:
+    # Get the index of the model in the list of models
+    model_index = models.index(model_name)
+    # Get the corresponding evaluation metrics for the model
+    model_metrics_row = model_metrics[model_metrics['Model'] == model_name].iloc[0]
+    metrics_values = [model_metrics_row[metric] for metric in metrics]
+    # Add the bar trace for the model with the model name as the x values
+    fig.add_trace(go.Bar(
+        x=[f'{model_name}: {metric}' for metric in metrics],
+        y=metrics_values,
+        name=model_name,
+        marker=dict(color=px.colors.qualitative.Plotly[model_index]),
+        legendgroup=model_name,
+        width=0.3  # Adjust the width of each column as needed
+    ))
+
+# Update layout
+fig.update_layout(
+    barmode='group',
+    title='Model Performance Comparison by Metric',
+    xaxis_title='Metrics',
+    yaxis_title='Score',
+    legend_title='Model',
+)
+
+# Show the figure
+fig.show()
+
+# Initialize the figure
+fig = go.Figure()
+
+# Add bar comparison between metrics for each model
+for model_name in models:
+    model_index = models.index(model_name)
+    fig.add_trace(go.Scatterpolar(
+        r=[accuracies[model_index], precisions[model_index], recalls[model_index], f1_scores[model_index]],
+        theta=metrics,
+        fill='toself',
+        name=model_name,
+        marker=dict(color=px.colors.qualitative.Plotly[model_index]),
+    ))
+
+# Update layout
+fig.update_layout(
+    polar=dict(
+        radialaxis=dict(
+            visible=True,
+            range=[0, 1]  # Adjust range as needed
+        )),
+    showlegend=True,
+    title='Model Performance Comparison by Metric',
+    width=1200,  # Set the width of the plot
+    height=800,  # Set the height of the plot
+)
+
+# Show the figure
+fig.show()
+
+
+# Initialize an empty dictionary to store scores for each metric
+scores = {'Model': models}
+
+# Populate the dictionary with scores for each metric
+for metric in metrics:
+    scores[metric] = [model_metrics[model_metrics['Model'] == model_name].iloc[0][metric] for model_name in models]
+
+# Create the parallel_data DataFrame
+parallel_data = pd.DataFrame(scores)
+
+# Generate a list of colors dynamically based on the number of models
+colors = plt.cm.tab10(np.linspace(0, 1, len(models)))
+
+plt.figure(figsize=(12, 6))  # Set the width and height of the plot
+
+# Create parallel coordinates plot with unique colors
+parallel_coordinates(parallel_data, 'Model', colormap='viridis', color=colors)
+
+# Add legend and labels
+plt.legend(loc='upper right')
+plt.xlabel('Metrics')
+plt.ylabel('Score')
+
+# Rotate x-axis labels for better readability
+plt.xticks(rotation=45)
+
+# Title
+plt.title('Parallel Coordinates Plot of Model Performance')
+
+# Show plot
+plt.show()
+
+#############################################################
+
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 
 print("Deep learning");
 
