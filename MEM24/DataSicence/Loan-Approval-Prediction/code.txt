@@ -29,7 +29,9 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils import class_weight
-
+from IPython.display import display, HTML
+from io import StringIO
+from termcolor import colored # For colored text printing
 
 import plotly.graph_objects as go
 from pandas.plotting import parallel_coordinates
@@ -37,57 +39,139 @@ from pandas.plotting import parallel_coordinates
 import warnings
 warnings.filterwarnings("ignore")
 
-print("reading csv file")
-####################################################
+def display_colored_message(message, color='black', background='orange'):
+    display(HTML(f'<span style="color: {color}; background-color: {background};">{message}</span>'))
 
-# reading csv file
-df = pd.read_csv('/content/sample_data/loan.csv')
+display_colored_message("THE REQUIRED LIBRARIES WERE SUCCESSFULLY IMPORTED...")
 
 ####################################################
-print("\n>>>>>>>>>>>>>> Printing first five rows of dataset")
+try:
+    # Read the CSV file and save it in "loan_data" variable
+    # reading csv file
+    df = pd.read_csv('/content/sample_data/loan.csv')
+    
+    # Print a success message
+    display_colored_message("THE DATASET LOADED SUCCESSFULLY...")
+
+except FileNotFoundError:
+    # Handle file not found error
+    print(colored("ERROR: File not found!", "red", attrs=['reverse']))
+
+except Exception as e:
+    # Handle other exceptions
+    print(colored(f"ERROR: {e}", "red", attrs=['reverse']))
+
+####################################################
+display_colored_message("PRINTING THE FIRST FIVE ROWS OF THE DATASET...")
 # printing first five rows of dataset
 print(df.head(5))
 
-print("\n>>>>>>>>>>>>>> Printing last five rows of datset")
+####################################################
+display_colored_message("PRINTING THE LAST FIVE ROWS OF THE DATASET...")
 # Printing last five rows of datset
 print(df.tail(5))
 
-print("\n>>>>>>>>>>>>>> Obtaining the dimensions of dataset")
+####################################################
+display_colored_message("OBTAINING THE DIMENSIONS OF THE DATASET...")
 # Obtaining the dimensions of dataset
-print(df.shape)
+print("The shape =", df.shape)
 
-print("\n>>>>>>>>>>>>>> Display the list the columns")
+# Dataset dimensions and statistics
+num_rows, num_cols = df.shape
+num_features = num_cols - 1
+num_data = num_rows * num_cols
+
+# Print the information about the dataset
+print(f"Number of Rows: {num_rows}")
+print(f"Number of Columns: {num_cols}")
+print(f"Number of Features: {num_features}")
+print(f"Number of All Data: {num_data}")
+
+####################################################
+display_colored_message("DISPLAY THE LIST COLUMNS...")
 print(df.columns)
 
 ####################################################
+display_colored_message("RENAME COLUMNS...")
 #Rename columuns Self_Employed, Credit_History, Loan_Amount_Term
 df = df.rename(columns={'Self_Employed' : 'SelfEmployed'})
 df = df.rename(columns={'Credit_History' : 'CreditHistory'})
 df = df.rename(columns={'Loan_Amount_Term' : 'LoanAmountTerm'})
 df = df.rename(columns={'Property_Area' : 'PropertyArea'})
 
-print("\n>>>>>>>>>>>>>> Statistical summary of dataset")
+####################################################
+display_colored_message("STATISTICAL SUMMARY OF THE DATASET...")
 # Statistical summary of dataset
-df.info()
+#df.info()
+
+# Function to extract info into a DataFrame
+def extract_info(df):
+    buffer = StringIO()
+    df.info(buf=buffer)
+    s = buffer.getvalue()
+    
+    # Parse the buffer content to extract column info
+    lines = s.split('\n')
+    col_lines = lines[5:-3]  # Data lines
+
+    memory_line = lines[-2]  # Memory usage line
+
+    info_dict = {
+        "Column": [],
+        "Non-Null Count": [],
+        "Dtype": []
+    }
+
+    for line in col_lines:
+        parts = line.split()
+        info_dict["Column"].append(parts[1])
+        info_dict["Non-Null Count"].append(int(parts[2].replace(',', '')))
+        info_dict["Dtype"].append(parts[-1])
+    
+    info_df = pd.DataFrame(info_dict)
+    return info_df
+
+# Extract info and create a DataFrame
+info_df = extract_info(df)
+
+# Convert Non-Null Count to a proportion for better gradient visualization
+info_df['Non-Null Proportion'] = info_df['Non-Null Count'] / len(df)
+
+# Style the DataFrame
+styled_info_df = info_df.style.background_gradient(cmap='viridis', subset=['Non-Null Proportion'])
+
+# Display the styled DataFrame
+display(styled_info_df)
 
 ####################################################
-print("\n>>>>>>>>>>>>>> Calculate summary statistics for numerical columns ")
+display_colored_message("SUMMARY STATISTICTS FOR NUMERICAL COLUMNS...")
 #Calculate summary statistics for numerical columns using describe()
-print(df.describe())
+#print(df.describe())
+
+# Describe and style
+styled_df = df.describe().T.style.background_gradient(cmap='viridis')
+
+# Use display to explicitly show the styled DataFrame
+display(styled_df)
 
 ####################################################
-print("\n>>>>>>>>>>>>>> Calculate the total of null values")
+display_colored_message("TOTAL OF NULL VALUES...")
 # Calculate the total of null values
 print(df.isnull().sum().sum())
 
-print("\n>>>>>>>>>>>>>> Visulize the null values using heatmp")
+display_colored_message("VISULIZE THE NULL VALUES USING HEATMAP...")
 # Visulize the null values using heatmp
 df.isnull().sum()
 sns.heatmap(df.isnull(), cbar=True, cmap='inferno')
 plt.show()
 
 ####################################################
-print("\n>>>>>>>>>>>>>> Find the duplicated rows")
+# Drop columns
+columns_to_drop = ['Loan_ID']
+df.drop(columns_to_drop, axis=1, inplace=True)
+
+####################################################
+display_colored_message("FIND THE DUPLICATED ROWS...")
 #Find the duplicated rows
 print(df.duplicated().sum())
 
@@ -111,19 +195,7 @@ else:
 print(f"Percentage of duplicated rows: {percent_duplication * 100:.2f}%")
 
 ####################################################
-print("\n>>>>>>>>>>>>>> Dealing with Categorical values")
- # Dealing with Categorical values
-
-# Gender Column
-df['Gender'] =  df['Gender'].map({'Male':0,'Female':1})
-
-# Married column
-df['Married'] = df['Married'].map({'No':0,'Yes':1})
-
-# Loan_Status column
-df['Loan_Status'] =df['Loan_Status'].map({'N':0,'Y':1})
-
-####################################################
+display_colored_message("FILL MISSING VALUES...")
 #Missing Value
 # Gender column
 df['Gender'] = df['Gender'].fillna(df['Gender'].mode()[0])
@@ -142,10 +214,38 @@ df['LoanAmountTerm'] = df['LoanAmountTerm'].fillna(df['LoanAmountTerm'].mode()[0
 # PropertyArea Column
 df['PropertyArea'] = df['PropertyArea'].fillna(df['PropertyArea'].mode()[0])
 
+
+####################################################
+display_colored_message("DEALING WITH CATEGORICAL VALUES...")
+# Dealing with Categorical values
+
+# Gender Column
+#df['Gender'] =  df['Gender'].map({'Male':0,'Female':1})
+le = LabelEncoder()
+df["Gender"] = le.fit_transform(df["Gender"])
+df["Married"] = le.fit_transform(df["Married"])
+df["Loan_Status"] = le.fit_transform(df["Loan_Status"])
+
+####################################################
+
+dfCopy = df.copy()
+# Filter columns with 'object' dtype
+object_columns = dfCopy.select_dtypes(include=['object']).columns
+
+# Initialize LabelEncoder
+le = LabelEncoder()
+
+# Apply LabelEncoder to 'object' columns
+for col in object_columns:
+    dfCopy[col] = le.fit_transform(dfCopy[col])
+
+plt.figure(figsize=(10,8))
+sns.heatmap(dfCopy.corr(),annot=True,cmap="viridis")
+plt.show()
+
 ####################################################
 # Counting the accurance of each value in Gender column
 df['Gender'].value_counts()
-
 
 plt.figure(figsize=(12, 4))
 sns.countplot(x='Gender', data=df, palette='hls')
@@ -161,16 +261,36 @@ plt.show()
 df['LoanAmountTerm'].value_counts()
 plt.figure(figsize=(15,6))
 #sns.countplot('Loan_Amount_Term', data = df, palette='hls')
-plt.xticks(rotation = 90)
-plt.show()
+#plt.xticks(rotation = 90)
+#plt.show()
 
-
+###################################################
+display_colored_message("BOX PLOT DATASET...")
 print("\n>>>>>>>>>>>>>> box plot dataset")
 plt.figure(figsize=(15,10))
 sns.boxplot(data=df)
 plt.show()
 
+
 ####################################################
+display_colored_message("DISPLAY OUTLIERS...")
+# Set the figure size
+plt.figure(figsize=(15, 10))
+
+# Only variables that have outliers
+outliersColumns = df.get(["ApplicantIncome", "CoapplicantIncome", "LoanAmount", "LoanAmountTerm"])
+
+# Add outliers to the plot
+sns.stripplot(data=outliersColumns, color="red", jitter=0.3, size=5)
+
+# Set the axis labels and title
+plt.title("Outliers")
+
+# Show the plot
+plt.show()
+
+####################################################
+display_colored_message("REMOVE OUTLIERS...")
 print("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
 dfOutliers = df[['ApplicantIncome', 'CoapplicantIncome']]
 # Calculate Q1, Q3, and IQR
@@ -214,7 +334,8 @@ else:
 dfWinsorized = df.copy()
 
  # Winsorize the column 'ApplicantIncome', ApplicantIncome is the column with potential outliers,  2/1030
-dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.012, 0.012))
+#dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.012, 0.012))
+dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.013, 0.013))
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
 sns.histplot(df['ApplicantIncome'], kde=True)
@@ -238,7 +359,8 @@ print('CoapplicantIncome perc < 10000' , percentilleApplicantIncome)
 print('CoapplicantIncome count < 10000' , count)
 
  # Winsorize the column 'CoapplicantIncome', CoapplicantIncome is the column with potential outliers
-dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.009, 0.009))
+#dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.009, 0.009))
+dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.01, 0.01))
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
 sns.histplot(df['CoapplicantIncome'], kde=True)
@@ -291,15 +413,31 @@ if 0 < percentOutliers < 0.05:
 else:
     print("We can not remove all outliers, percengtage is higer than 5%")
 
+#############################
+#After outlier
+# Set the figure size
+plt.figure(figsize=(15, 10))
+
+# Only variables that have outliers
+outliersColumns = df.get(["ApplicantIncome", "CoapplicantIncome", "LoanAmount", "LoanAmountTerm"])
+
+# Add outliers to the plot
+sns.stripplot(data=outliersColumns, color="red", jitter=0.3, size=5)
+
+# Set the axis labels and title
+plt.title("Outliers")
+
+# Show the plot
+plt.show()
 
 ####################################################
-print("\n>>>>>>>>>>>>>> #DATA visulazation")
+display_colored_message("DATA VISULAZATION...")
+
 #DATA visulazation
 d_labels = ['Male', 'Female']
 g_labels = ['Graduate', 'Not Graduate']
-l_labels = ['NO', 'YES']
-p_labels = ['Urban', 'Rural', 'Semiurban']
-
+l_labels = ['YES', 'NO']
+p_labels = ['Semiurban', 'Urban', 'Rural']
 
 # Create subplots: use 'domain' type for Pie subplot
 fig = make_subplots(rows=1, cols=4, specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]])
@@ -423,15 +561,6 @@ plt.figure(figsize=(12,4))
 sns.boxplot(x='Loan_Status',y = 'CoapplicantIncome', data=df)
 plt.show()
 
-
-# Showing correlation through heatmap
-plt.figure(figsize=(7,7))
-#sns.heatmap(df.corr())
-
-# Drop multiple columns
-columns_to_drop = ['Loan_ID']
-df.drop(columns_to_drop, axis=1, inplace=True)
-
 ####################################
 # Create a figure with multiple subplots
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -519,170 +648,177 @@ plt.tight_layout()
 plt.show()
 
 ##############################################
+# Create a pairplot
+sns.pairplot(df)
 
-from sklearn.metrics import accuracy_score
+# Display the pairplot
+plt.show()
 
 
-X = df[['Gender', 'Married', 'ApplicantIncome', 'LoanAmount',
-'CreditHistory']]
+##############################################
+display_colored_message("APPLY LABEL ENCODER FOR OBJECT COLUMN TYPE...")
+# Filter columns with 'object' dtype
+object_columns = df.select_dtypes(include=['object']).columns
+
+# Initialize LabelEncoder
+le = LabelEncoder()
+
+# Apply LabelEncoder to 'object' columns
+for col in object_columns:
+    df[col] = le.fit_transform(df[col])
+
+#df.head()
+
+#drop SelfEmployed =>
+
+df = df.drop(['SelfEmployed'], axis=1)
+df = df.drop(['Gender'], axis=1)
+df = df.drop(['Education'], axis=1)
+print (df.shape)
+X = df
+X = X.drop('Loan_Status',axis=1) #Remove label
+
+# Rescale and normalize the features
+
+# Standardization (Normalization)
+#standard_scaler = StandardScaler()
+#X = standard_scaler.fit_transform(X)
+
+# Min-Max Scaling (Rescaling)
+#min_max_scaler = MinMaxScaler()
+#X = min_max_scaler.fit_transform(X)
+
+#X = df[['Gender', 'Married', 'Dependents', 'Education', 
+ #                          'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 
+ #        'LoanAmountTerm', 'PropertyArea', 'CreditHistory']]
+
 y = df.Loan_Status
 
-print('Data Splitting')
+display_colored_message("MODEL DATA SPLIT...")
+
 # Data Splitting
 
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2,
-random_state = 10)
+random_state = 42)
 
 
-####missing normalization
-
-#TODO
-
-# Confusion Matrix
-fig, axes = plt.subplots(2, 3, figsize=(8, 10))
 ####################################################
+display_colored_message("MODELS SCORE AND CONFUSION MATRIX...")
+# Confusion Matrix
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+
 # DecisionTree Model
 model_tree = DecisionTreeClassifier()
 model_tree.fit(X_train, y_train)
-predicted_y = model_tree.predict(X_test)
+predicted_y_tree = model_tree.predict(X_test)
 
 scoreTrainTree = model_tree.score(X_train, y_train)
 print('Accuracy DecisionTree train: ', scoreTrainTree)
 scoreTestTree = model_tree.score(X_test, y_test)
 print('Accuracy DecisionTree test: ', scoreTestTree)
 
-#Confusion Matrix
-#plt.figure(figsize=(4,3))
-sns.heatmap(confusion_matrix(y_test, predicted_y),
-                annot=True,fmt = "d",linecolor="k",linewidths=3)
-    
-axes[0, 0].set_title("Decision Tree CONFUSION MATRIX",fontsize=14)
-#plt.show()
+# Confusion Matrix - Decision Tree
+sns.heatmap(confusion_matrix(y_test, predicted_y_tree),
+            annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[0, 0])
+axes[0, 0].set_title("Decision Tree CONFUSION MATRIX", fontsize=14)
 
-#classification_report precision, recall, f1_score
-print(classification_report(y_test, predicted_y))
+print(classification_report(y_test, predicted_y_tree))
 
-
-####################################################
-#Logistic Regression
+# Logistic Regression
 model_logistic = LogisticRegression()
 model_logistic.fit(X_train, y_train)
-
-predicted_y = model_logistic.predict(X_test)
+predicted_y_logistic = model_logistic.predict(X_test)
 
 scoreTrainLogistic = model_logistic.score(X_train, y_train)
 print('Accuracy Logistic train: ', scoreTrainLogistic)
 scoreTestLogistic = model_logistic.score(X_test, y_test)
 print('Accuracy Logistic test: ', scoreTestLogistic)
 
-#Confusion Matrix
-#plt.figure(figsize=(4,3))
-sns.heatmap(confusion_matrix(y_test, predicted_y),
-                annot=True,fmt = "d",linecolor="k",linewidths=3)
-    
-axes[0,1].set_title("Logistic regression CONFUSION MATRIX",fontsize=14)
-#plt.show()
+print('Accuracy Logistic accuracy_score: ', accuracy_score(y_test, predicted_y_logistic))
 
-print(classification_report(y_test, predicted_y))
+# Confusion Matrix - Logistic Regression
+sns.heatmap(confusion_matrix(y_test, predicted_y_logistic),
+            annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[0, 1])
+axes[0, 1].set_title("Logistic regression CONFUSION MATRIX", fontsize=14)
 
-####################################################
-#Random forest algorithm
-model_rand_forest  = RandomForestClassifier(max_depth=4, random_state = 10)
+print(classification_report(y_test, predicted_y_logistic))
+
+
+# Random forest algorithm
+model_rand_forest = RandomForestClassifier()
 model_rand_forest.fit(X_train, y_train)
-
-RandomForestClassifier(max_depth=4, random_state=10)
-predicted_y = model_rand_forest.predict(X_test)
+predicted_y_forest = model_rand_forest.predict(X_test)
 
 scoreTrainForest = model_rand_forest.score(X_train, y_train)
 print('Accuracy Random forest train: ', scoreTrainForest)
 scoreTestForest = model_rand_forest.score(X_test, y_test)
 print('Accuracy Random forest test: ', scoreTestForest)
 
-#Confusion Matrix
-#plt.figure(figsize=(4,3))
-sns.heatmap(confusion_matrix(y_test, predicted_y),
-                annot=True,fmt = "d",linecolor="k",linewidths=3)
-    
-axes[0,2].set_title("Random forest CONFUSION MATRIX",fontsize=14)
-#plt.show()
+# Confusion Matrix - Random Forest
+sns.heatmap(confusion_matrix(y_test, predicted_y_forest),
+            annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[0, 2])
+axes[0, 2].set_title("Random forest CONFUSION MATRIX", fontsize=14)
 
-print(classification_report(y_test, predicted_y))
+print(classification_report(y_test, predicted_y_forest))
 
-
-####################################################
 # K Nearest Neighbors Model
 model_knn = KNeighborsClassifier(n_neighbors=5)
 model_knn.fit(X_train, y_train)
-predicted_knn_y = model_knn.predict(X_train)
+predicted_y_knn = model_knn.predict(X_test)
 
-# Accuracy Scores
 scoreTrainKnn = model_knn.score(X_train, y_train)
 print('Accuracy K Nearest Neighbors train: ', scoreTrainKnn)
 scoreTestKnn = model_knn.score(X_test, y_test)
 print('Accuracy K Nearest Neighbors test: ', scoreTestKnn)
 
-#Confusion Matrix
-#plt.figure(figsize=(4,3))
-sns.heatmap(confusion_matrix(y_test, predicted_y),
-                annot=True,fmt = "d",linecolor="k",linewidths=3)
-    
-axes[1,0].set_title("SVM K Nearest Neighbors MATRIX",fontsize=14)
-#plt.show()
+# Confusion Matrix - KNN
+sns.heatmap(confusion_matrix(y_test, predicted_y_knn),
+            annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[1, 0])
+axes[1, 0].set_title("K Nearest Neighbors CONFUSION MATRIX", fontsize=14)
 
-print(classification_report(y_test, predicted_y))
+print(classification_report(y_test, predicted_y_knn))
 
-####################################################
 # Naive Bayes Model
 model_nb = GaussianNB()
 model_nb.fit(X_train, y_train)
-predicted_nb_y = model_nb.predict(X_train)
+predicted_y_nb = model_nb.predict(X_test)
 
-# Accuracy Scores
 scoreTrainNb = model_nb.score(X_train, y_train)
 print('Accuracy Naive Bayes train: ', scoreTrainNb)
 scoreTestNb = model_nb.score(X_test, y_test)
 print('Accuracy Naive Bayes test: ', scoreTestNb)
 
+# Confusion Matrix - Naive Bayes
+sns.heatmap(confusion_matrix(y_test, predicted_y_nb),
+            annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[1, 1])
+axes[1, 1].set_title("Naive Bayes CONFUSION MATRIX", fontsize=14)
 
-#Confusion Matrix
-#plt.figure(figsize=(4,3))
-sns.heatmap(confusion_matrix(y_test, predicted_y),
-                annot=True,fmt = "d",linecolor="k",linewidths=3)
-    
-axes[1,1].set_title("SVM Naive Bayes MATRIX",fontsize=14)
-#plt.show()
+print(classification_report(y_test, predicted_y_nb))
 
-print(classification_report(y_test, predicted_y))
-
-
-####################################################
-#Linear svm
-model_svm = SGDClassifier(alpha=0.001, random_state=5, max_iter=15, tol=None)
+# Linear SVM
+#model_svm = SGDClassifier(alpha=0.001, random_state=42, max_iter=15, tol=None)
+model_svm = SGDClassifier(loss='log', random_state=42)
+#model_svm = SVC(kernel='linear', C=1.0, random_state=42)
 model_svm.fit(X_train, y_train)
-SGDClassifier(alpha=0.001, max_iter=15, random_state=5, tol=None)
-
-predicted_y = model_svm.predict(X_test)
+predicted_y_svm = model_svm.predict(X_test)
 
 scoreTrainSvm = model_svm.score(X_train, y_train)
 print('Accuracy Linear svm train: ', scoreTrainSvm)
 scoreTestSvm = model_svm.score(X_test, y_test)
 print('Accuracy Linear svm test: ', scoreTestSvm)
 
-#Confusion Matrix
-#plt.figure(figsize=(4,3))
-sns.heatmap(confusion_matrix(y_test, predicted_y),
-                annot=True,fmt = "d",linecolor="k",linewidths=3)
-    
-axes[1,2].set_title("SVM CONFUSION MATRIX",fontsize=14)
-#plt.show()
+# Confusion Matrix - Linear SVM
+sns.heatmap(confusion_matrix(y_test, predicted_y_svm),
+            annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[1, 2])
+axes[1, 2].set_title("Linear SVM CONFUSION MATRIX", fontsize=14)
 
-print(classification_report(y_test, predicted_y))
+print(classification_report(y_test, predicted_y_svm))
+
 plt.tight_layout()
 plt.show()
 
 ####################################################
-#Model comparaision
-
+display_colored_message("MODELS COMPARAISION...")
 #logistics
 logit_roc_auc = roc_auc_score(y_test, model_logistic.predict(X_test))
 fpr, tpr, thresholds = roc_curve(y_test, model_logistic.predict_proba(X_test)[:,1])
@@ -704,9 +840,6 @@ kn_roc_auc = roc_auc_score(y_test, model_knn.predict(X_test))
 kn_fpr, kn_tpr, kn_thresholds = roc_curve(y_test, model_knn.predict_proba(X_test)[:,1])
 
 # svm
-model_svm = SVC(kernel='linear', probability=True)
-model_svm.fit(X_train, y_train)
-
 svm_roc_auc = roc_auc_score(y_test, model_svm.predict(X_test))
 svm_fpr, svm_tpr, svm_thresholds = roc_curve(y_test, model_svm.predict_proba(X_test)[:,1])
 
@@ -733,8 +866,8 @@ plt.show()
 #Model importance feature
 
 feature_labels = np.array(['Gender', 'Married', 'Dependents', 'Education', 'SelfEmployed', 
-                           'ApplicantIncome', 'LoanAmount', 'LoanAmountTerm', 'CreditHistory' ])
-#'PropertyArea' 'CoapplicantIncome'
+                           'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 
+         'LoanAmountTerm', 'PropertyArea', 'CreditHistory'])
 
 importance = model_rand_forest.feature_importances_
 
@@ -784,6 +917,7 @@ with open(styled_model_metrics_file, "w") as f:
 
 print("Styled model metrics saved to:", styled_model_metrics_file)
 
+display_colored_message("EVALUTION METRICS...")
 # Define the models and their corresponding evaluation metrics
 models = ['Logistic Regression', 'Decision Tree', 'Random Forest', 'K Nearest Neighbors', 'Naive Bayes', 'SVM']
 metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
@@ -895,6 +1029,8 @@ plt.title('Parallel Coordinates Plot of Model Performance')
 # Show plot
 plt.show()
 
+
+display_colored_message("DEEP LEARNING...")
 #############################################################
 
 
