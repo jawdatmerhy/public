@@ -6,6 +6,10 @@ from re import X
 import pandas as pd
 
 import missingno as msno
+from IPython.display import display, HTML
+from io import StringIO
+from termcolor import colored # For colored text printing
+from tabulate import tabulate
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
@@ -20,21 +24,22 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB, BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import roc_curve
-from sklearn.metrics import accuracy_score
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import recall_score, confusion_matrix, precision_score, f1_score, accuracy_score, classification_report
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
+from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.neural_network import MLPClassifier
 from sklearn.utils import class_weight
-from IPython.display import display, HTML
-from io import StringIO
-from termcolor import colored # For colored text printing
-from tabulate import tabulate
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import recall_score, confusion_matrix, precision_score, f1_score, accuracy_score, classification_report
 
 
 import plotly.graph_objects as go
@@ -45,6 +50,10 @@ warnings.filterwarnings("ignore")
 
 def display_colored_message(message, color='black', background='orange'):
     display(HTML(f'<span style="color: {color}; background-color: {background};">{message}</span>'))
+
+def display_colored_sub_message(message):
+    print("\033[1;32;40m" + message + "\044[0m")
+
 
 display_colored_message("THE REQUIRED LIBRARIES WERE SUCCESSFULLY IMPORTED...")
 
@@ -180,17 +189,17 @@ display_colored_message("FIND THE DUPLICATED ROWS...")
 #Find the duplicated rows
 print(df.duplicated().sum())
 
-print("\n>>>>>>>>>>>>>> To remove duplicated lines if they exist")
+display_colored_sub_message("\n>>>>>>>>>>>>>> To remove duplicated lines if they exist")
 print("Calculate the percentage of duplicated rows")
 # Calculate the percentage of duplicated rows
 percent_duplication = df.duplicated().sum() / df.shape[0]
 print(f"Percentage of duplicated rows: {percent_duplication * 100:.2f}%")
 
 
-print("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
 # Check if there are any duplicated rows and if the percentage is less than 5%
 if 0 < percent_duplication < 0.05:
-    print("\n>>>>>>>>>>>>>> Drop duplicated rows")
+    display_colored_sub_message("\n>>>>>>>>>>>>>> Drop duplicated rows")
     # Drop duplicated rows
     df = df.drop_duplicates()
 else:
@@ -218,7 +227,6 @@ df['LoanAmount'] = df['LoanAmount'].fillna(df['LoanAmount'].median())
 df['LoanAmountTerm'] = df['LoanAmountTerm'].fillna(df['LoanAmountTerm'].mode()[0])
 # PropertyArea Column
 df['PropertyArea'] = df['PropertyArea'].fillna(df['PropertyArea'].mode()[0])
-
 
 ####################################################
 display_colored_message("DEALING WITH CATEGORICAL VALUES...")
@@ -271,11 +279,9 @@ plt.figure(figsize=(15,6))
 
 ###################################################
 display_colored_message("BOX PLOT DATASET...")
-print("\n>>>>>>>>>>>>>> box plot dataset")
 plt.figure(figsize=(15,10))
 sns.boxplot(data=df)
 plt.show()
-
 
 ####################################################
 display_colored_message("DISPLAY OUTLIERS...")
@@ -296,7 +302,7 @@ plt.show()
 
 ####################################################
 display_colored_message("REMOVE OUTLIERS...")
-print("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
 dfOutliers = df[['ApplicantIncome', 'CoapplicantIncome']]
 # Calculate Q1, Q3, and IQR
 Q1 = dfOutliers.quantile(0.25)
@@ -315,7 +321,7 @@ potentialOutliers = dfOutliers[(dfOutliers < lowerBound) | (dfOutliers > upperBo
 potentialOutliersRowCount = potentialOutliers.notnull().sum()
 print("\nSum of each outliers: \n", potentialOutliersRowCount)
 
-print("\n>>>>>>>>>>>>>> Calculate the number of unique rows containing outliers")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the number of unique rows containing outliers")
 # Get unique rows containing outliers
 uniqueOutlierRows = potentialOutliers.any(axis=1)
 dfUniqueOutliers = df[uniqueOutlierRows]
@@ -323,16 +329,15 @@ dfUniqueOutliers = df[uniqueOutlierRows]
 totalUniqueOutliers = dfUniqueOutliers.shape[0]
 print("\nTotal number of unique rows with outliers: \n", totalUniqueOutliers)
 
-
-print("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
 # Calculate the outliers percentag
 percentOutliers = totalUniqueOutliers / df.shape[0]
 print(f"Percentage of duplicated rows: {percentOutliers * 100:.2f}%")
 
-print("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
 # Check if there are any duplicated rows and if the percentage is less than 5%
 if 0 < percentOutliers < 0.05:
-    print("\n>>>>>>>>>>>>>> Remove outliers")
+    display_colored_sub_message("\n>>>>>>>>>>>>>> Remove outliers")
 else:
     print("We can not remove all outliers, percengtage is higer than 5%")
 
@@ -351,7 +356,6 @@ plt.title('After Winsorization ApplicantIncome')
 plt.show()
 #Replace orginal value
 df['ApplicantIncome'] = dfWinsorized['ApplicantIncome_winsorized']
-
 
 count = df[df['ApplicantIncome'] < 20000].shape[0]
 percentilleApplicantIncome = (df.shape[0] - count) / df.shape[0] / 100
@@ -378,7 +382,7 @@ plt.show()
 df['CoapplicantIncome'] = dfWinsorized['CoapplicantIncome_winsorized']
 
 
-print("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
 dfOutliers = df[['ApplicantIncome', 'CoapplicantIncome']]
 # Calculate Q1, Q3, and IQR
 Q1 = dfOutliers.quantile(0.25)
@@ -397,7 +401,7 @@ potentialOutliers = dfOutliers[(dfOutliers < lowerBound) | (dfOutliers > upperBo
 potentialOutliersRowCount = potentialOutliers.notnull().sum()
 print("\nSum of each outliers: \n", potentialOutliersRowCount)
 
-print("\n>>>>>>>>>>>>>> Calculate the number of unique rows containing outliers")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the number of unique rows containing outliers")
 # Get unique rows containing outliers
 uniqueOutlierRows = potentialOutliers.any(axis=1)
 dfUniqueOutliers = df[uniqueOutlierRows]
@@ -406,15 +410,15 @@ totalUniqueOutliers = dfUniqueOutliers.shape[0]
 print("\nTotal number of unique rows with outliers---: \n", totalUniqueOutliers)
 
 
-print("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
 # Calculate the outliers percentag
 percentOutliers = totalUniqueOutliers / df.shape[0]
 print(f"Percentage of duplicated rows: {percentOutliers * 100:.2f}%")
 
-print("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
+display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
 # Check if there are any duplicated rows and if the percentage is less than 5%
 if 0 < percentOutliers < 0.05:
-    print("\n>>>>>>>>>>>>>> Remove outliers")
+    display_colored_sub_message("\n>>>>>>>>>>>>>> Remove outliers")
 else:
     print("We can not remove all outliers, percengtage is higer than 5%")
 
@@ -437,7 +441,6 @@ plt.show()
 
 ####################################################
 display_colored_message("DATA VISULAZATION...")
-
 
 # Creating cross-tabulations
 crosstab1 = pd.crosstab(df.Gender, df.Married)
@@ -542,7 +545,6 @@ loan_yes_counts = df[df["Loan_Status"] == 1].groupby("Dependents").size()
 
 # Group by dependents the employees who didn't get a loan
 loan_no_counts = df[df["Loan_Status"] == 0].groupby("Dependents").size()
-
 
 # Data for the outer pie chart (distribution of loan status by dependents)
 labels_dependents = ["Zero", "One", "Two", "Three+", "Zero", "One", "Two", "Three+"]
@@ -656,7 +658,6 @@ plt.show()
 
 ##################################################
 
-
 num_cols = 3
 num_rows = (len(df.columns) + num_cols - 1) // num_cols
 
@@ -712,7 +713,6 @@ sns.pairplot(df)
 # Display the pairplot
 plt.show()
 
-
 ##############################################
 display_colored_message("APPLY LABEL ENCODER FOR OBJECT COLUMN TYPE...")
 # Filter columns with 'object' dtype
@@ -727,28 +727,37 @@ for col in object_columns:
 
 #df.head()
 
-#drop SelfEmployed =>
+##############################################
+display_colored_message("SAVE PROCESSED CSV FILE ...")
+#Save the processed data to a new CSV file
+df.to_csv('/content/sample_data/loan_processed.csv', index=True)
 
-df = df.drop(['SelfEmployed'], axis=1)
-df = df.drop(['Gender'], axis=1)
-df = df.drop(['Education'], axis=1)
+##############################################
+# Dropping multiple columns in a single call
+columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents']
+#columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents', 'Married', 'PropertyArea']
+df = df.drop(columns=columns_to_drop)
+
 print (df.shape)
 X = df
+
 X = X.drop('Loan_Status',axis=1) #Remove label
-
-# Rescale and normalize the features
-
-# Standardization (Normalization)
-#standard_scaler = StandardScaler()
-#X = standard_scaler.fit_transform(X)
-
-# Min-Max Scaling (Rescaling)
-#min_max_scaler = MinMaxScaler()
-#X = min_max_scaler.fit_transform(X)
 
 #X = df[['Gender', 'Married', 'Dependents', 'Education', 
  #                          'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 
  #        'LoanAmountTerm', 'PropertyArea', 'CreditHistory']]
+
+
+# Rescale and normalize the features
+
+# Standardization (Normalization)
+standard_scaler = StandardScaler()
+#X = standard_scaler.fit_transform(X)
+
+# Min-Max Scaling (Rescaling)
+min_max_scaler = MinMaxScaler()
+X = min_max_scaler.fit_transform(X)
+
 
 y = df.Loan_Status
 
@@ -759,17 +768,9 @@ display_colored_message("MODEL DATA SPLIT...")
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2,
 random_state = 42)
 
-#############################
-
-from xgboost import XGBClassifier, XGBRegressor
-from lightgbm import LGBMClassifier, LGBMRegressor
-from sklearn.neural_network import MLPRegressor
-from sklearn.neural_network import MLPClassifier
+##############################################
 display_colored_message("MODELS SCORE AND CONFUSION MATRIX...")
 
-
-def display_colored_message(message):
-    print("\033[1;32;40m" + message + "\033[0m")
 
 # List of models to train
 models = [
@@ -831,8 +832,11 @@ for i, (name, model) in enumerate(models):
 plt.tight_layout()
 plt.show()
 
-# ROC Curve and AUC Score
 display_colored_message("MODELS COMPARISON...")
+
+##############################################
+display_colored_message("ROC CURVE AND AUC SCORE...")
+# ROC Curve and AUC Score
 
 # Define dictionaries to store ROC AUC scores and curves
 roc_auc_scores = {}
@@ -861,6 +865,8 @@ plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
 plt.show()
 
+##############################################
+display_colored_message("MODEL METRICS...")
 # Apply styles to highlight the highest metric for each model
 def highlight_max(s):
     is_max = s == s.max()
@@ -880,10 +886,7 @@ print("Styled model metrics saved to:", styled_model_metrics_file)
 display(HTML(styled_model_metrics_html))
 
 
-
-
-
-###
+##############################################
 display_colored_message("EVALUATION METRICS...")
 
 # Define the models and their corresponding evaluation metrics
@@ -925,6 +928,8 @@ fig.update_layout(
 )
 fig.show()
 
+##############################################
+display_colored_message("MODEL RADAR CHART COMPARAISON...")
 # Radar chart comparison between metrics for each model
 fig = go.Figure()
 for model_name in models_list:
@@ -950,6 +955,8 @@ fig.update_layout(
 )
 fig.show()
 
+##############################################
+display_colored_message("MODEL PERFORMANCE PARALLEL COORDINATES...")
 # Parallel coordinates plot for model performance
 scores = {'Model': models_list}
 for metric in metrics:
@@ -969,6 +976,7 @@ plt.show()
 
 
 ####################################################
+display_colored_message("MODEL IMPORTANCE FEATURES...")
 #Model importance feature
 
 #feature_labels = np.array(['Gender', 'Married', 'Dependents', 'Education', 'SelfEmployed', 
@@ -1000,9 +1008,9 @@ def display_feature_importance(model, model_name, feature_labels):
 for name, model in models:
     display_feature_importance(model, name, feature_labels)
 
-display_colored_message("DEEP LEARNING...")
-#############################################################
 
+#############################################################
+display_colored_message("DEEP LEARNING...")
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
