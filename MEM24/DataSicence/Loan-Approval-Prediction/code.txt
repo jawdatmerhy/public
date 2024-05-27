@@ -34,6 +34,8 @@ from sklearn.utils import class_weight
 from IPython.display import display, HTML
 from io import StringIO
 from termcolor import colored # For colored text printing
+from tabulate import tabulate
+
 
 import plotly.graph_objects as go
 from pandas.plotting import parallel_coordinates
@@ -66,12 +68,13 @@ except Exception as e:
 ####################################################
 display_colored_message("PRINTING THE FIRST FIVE ROWS OF THE DATASET...")
 # printing first five rows of dataset
-print(df.head(5))
+
+print(colored(tabulate(df.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 
 ####################################################
 display_colored_message("PRINTING THE LAST FIVE ROWS OF THE DATASET...")
 # Printing last five rows of datset
-print(df.tail(5))
+print(colored(tabulate(df.tail(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 
 ####################################################
 display_colored_message("OBTAINING THE DIMENSIONS OF THE DATASET...")
@@ -810,9 +813,15 @@ for i, (name, model) in enumerate(models):
     scoreTrain = model.score(X_train, y_train)
     scoreTest = model.score(X_test, y_test)
     
-    print(f'Accuracy {name} train: ', scoreTrain)
-    print(f'Accuracy {name} test: ', scoreTest)
-    print(classification_report(y_test, predicted_y))
+    # Print model header with color
+    print(colored(f"\n{'='*40}\n{name} Model\n{'='*40}", 'blue'))
+    print(colored(f"Train Accuracy: {scoreTrain:.2f}", 'green'))
+    print(colored(f"Test Accuracy: {scoreTest:.2f}\n", 'green'))
+    
+    # Print classification report with color
+    print(colored("Classification Report:", 'blue'))
+    report = classification_report(y_test, predicted_y)
+    print(colored(report, 'yellow'))
     
     sns.heatmap(confusion_matrix(y_test, predicted_y), annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[i])
     axes[i].set_title(f"{name} CONFUSION MATRIX", fontsize=14)
@@ -969,7 +978,7 @@ plt.show()
 # Get feature labels from DataFrame columns (excluding the last column)
 feature_labels = df.columns[:-1].values
 
-# Feature importance for models that support it
+# Function to display feature importance
 def display_feature_importance(model, model_name, feature_labels):
     if hasattr(model, "feature_importances_"):
         importance = model.feature_importances_
@@ -979,9 +988,12 @@ def display_feature_importance(model, model_name, feature_labels):
         return
 
     feature_indexes_by_importance = importance.argsort()
-    print(f"Feature importance for {model_name}:")
+    print(f"\033[1m\033[34m{'='*40}\nFeature importance for {model_name}:\n{'='*40}\033[0m")
     for index in feature_indexes_by_importance:
-        print(f'{feature_labels[index]}    -> {importance[index] * 100.0:.2f}%')
+        importance_percentage = importance[index] * 100.0
+        feature_name = feature_labels[index]
+        color_code = '\033[32m' if importance_percentage > 10 else '\033[33m' if importance_percentage > 5 else '\033[0m'
+        print(f"{color_code}{feature_name}: {importance_percentage:.2f}%\033[0m")
     print()
 
 # Display feature importance for applicable models
