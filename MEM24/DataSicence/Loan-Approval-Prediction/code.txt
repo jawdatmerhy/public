@@ -39,7 +39,9 @@ from sklearn.utils import class_weight
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import learning_curve
 from sklearn.metrics import recall_score, confusion_matrix, precision_score, f1_score, accuracy_score, classification_report
+import plotly.express as px
 
 
 import plotly.graph_objects as go
@@ -52,7 +54,7 @@ def display_colored_message(message, color='black', background='orange'):
     display(HTML(f'<span style="color: {color}; background-color: {background};">{message}</span>'))
 
 def display_colored_sub_message(message):
-    print("\033[1;32;40m" + message + "\044[0m")
+    print("\044[1;32;40m" + message + "\044[0m")
 
 
 display_colored_message("THE REQUIRED LIBRARIES WERE SUCCESSFULLY IMPORTED...")
@@ -62,7 +64,7 @@ try:
     # Read the CSV file and save it in "loan_data" variable
     # reading csv file
     df = pd.read_csv('/content/sample_data/loan.csv')
-    
+
     # Print a success message
     display_colored_message("THE DATASET LOADED SUCCESSFULLY...")
 
@@ -123,7 +125,7 @@ def extract_info(df):
     buffer = StringIO()
     df.info(buf=buffer)
     s = buffer.getvalue()
-    
+
     # Parse the buffer content to extract column info
     lines = s.split('\n')
     col_lines = lines[5:-3]  # Data lines
@@ -141,7 +143,7 @@ def extract_info(df):
         info_dict["Column"].append(parts[1])
         info_dict["Non-Null Count"].append(int(parts[2].replace(',', '')))
         info_dict["Dtype"].append(parts[-1])
-    
+
     info_df = pd.DataFrame(info_dict)
     return info_df
 
@@ -475,6 +477,130 @@ axes[2].set_xticklabels(axes[2].get_xticklabels(), rotation=0)
 plt.tight_layout()
 plt.show()
 
+##################################
+dfGroupBy = pd.DataFrame(df.groupby(['Gender'])['Married'].count())
+dfGroupBy.reset_index(inplace=True)
+
+#fig = px.sunburst(dfGroupBy, path=['Gender'], values='Married')
+#fig.update_layout(title="Placement % of Married by gender", title_x=0.5)
+#fig.show()
+
+
+####################################################
+display_colored_message("PLOT DISTRIBUTION OF SELFEMPLOYED...")
+def single_plot_distribution(column_name, dataframe, title):
+
+    # Get the value counts of the specified column
+    value_counts = dataframe[column_name].value_counts()
+
+    # Set up the figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6), facecolor='black') 
+
+    # Set main title for the figure
+    fig.suptitle(title)
+
+    # Pie chart
+    #pie_colors = ['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
+    pie_colors = ['#0077b6', '#ff4500', '#90e0ef', '#caf0f8'] 
+    ax1.pie(value_counts, autopct='%0.001f%%', startangle=100, textprops={'fontsize': 20}, pctdistance=0.75, colors=pie_colors, labels=None)
+    centre_circle = plt.Circle((0,0),0.40,fc='black')
+    ax1.add_artist(centre_circle)
+    ax1.set_title(f'Distribution of {column_name}', fontsize=16, color='white')
+
+    # Bar chart
+    sns.barplot(x=value_counts.index, y=value_counts.values, ax=ax2, palette=pie_colors) 
+    ax2.set_title(f'Count of {column_name}', fontsize=16, color='white')
+    ax2.set_xlabel(column_name, fontsize=14, color='white')
+    ax2.set_ylabel('Count', fontsize=14, color='white')
+
+    # Rotate x-axis labels for better readability
+    ax2.tick_params(axis='x', rotation=45, colors='white')
+    ax2.tick_params(axis='y', colors='white')
+
+    # Set background color for the subplots
+    ax1.set_facecolor('black')
+    ax2.set_facecolor('black')
+
+    # Show the plots
+    plt.tight_layout()
+    plt.show()
+
+ 
+# Plot the distribution of SelfEmployed in the dataset
+single_plot_distribution('SelfEmployed', df, 'SelfEmployed Distribution')   
+
+
+####################################################
+display_colored_message("\nGROUP BY GENDER AND CALCULATE MEAN LOAN AMOUNT...")
+print("\n")
+# Group the DataFrame by 'Gender' and calculate the mean of 'LoanAmount'
+np = round(df.groupby('Gender')['LoanAmount'].mean().round(1))
+
+
+def bar_charts(x, y, title):
+
+    # Create a bar chart using Plotly Express
+    fig = px.bar(
+        x=x,  # Data for the x-axis
+        y=y,  # Data for the y-axis
+        title=title,  # Title of the chart
+        color=y,  # Color the bars based on y-values
+        labels={'x': 'Gender', 'y': 'Average LoanAmount'},  # Custom axis labels
+        text=y  # Add text labels to the bars
+    )
+
+    # Customize the layout
+    fig.update_layout(
+        paper_bgcolor='#111',  # Set the background color of the entire plot
+        plot_bgcolor='#111',   # Set the background color of the plot area
+        font_color='white',     # Set the font color
+        font=dict(size=20)     # Set the font size
+    ),
+    fig.update_layout(
+    xaxis=dict(
+        showgrid=False,
+        showticklabels=True,
+        ticks='outside',
+        tickfont=dict(
+            size=15,
+            family='Ariel',
+            color='white'
+        ),
+        showline=True,
+        linewidth=5,
+        linecolor='rgb(204, 204, 204)'
+    ),
+    yaxis=dict(
+        showgrid=False,
+        showticklabels=True,
+        ticks='outside',
+        tickfont=dict(
+            size=15,
+            family='Ariel',
+            color='white'
+        ),
+        showline=True,
+        linewidth=5,
+        linecolor='rgb(204, 204, 204)'
+    ),
+    title=dict(
+        text=title,
+        font=dict(
+            size=30,
+            family='Ariel'
+        )
+    ),
+    showlegend=True
+    )
+    fig.show()
+
+# Call the bar_charts function to generate a bar chart
+bar_charts(
+    np.index,           # Data for the x-axis (gender)
+    np.values,          # Data for the y-axis (average loan Amount)
+    'Average Loan Amount by Gender'  # Title of the chart
+)
+
 ####################################################
 
 fig, axs1 = plt.subplots(1, 3, figsize=(18, 6))
@@ -493,6 +619,7 @@ axs1[2].set_title('Loan Amount Distribution')
 plt.tight_layout()
 plt.show()
 ####################################################
+
 
 #DATA visulazation
 d_labels = ['Male', 'Female']
@@ -561,7 +688,7 @@ colors_loan = ['#ff6666', '#66b3ff']
 colors_dependents = ['#d8d8e9', '#c2c2f0', '#ffb3e6', '#b3ffb3', '#d8d8e9', '#c2c2f0', '#ffb3e6', '#b3ffb3']
 
 # Explode
-explode = (0.3,0.3) 
+explode = (0.3,0.3)
 explode_dependents = (0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
 
 # Plot
@@ -655,7 +782,6 @@ plt.tight_layout()
 # Show the plot
 plt.show()
 
-
 ##################################################
 
 num_cols = 3
@@ -743,8 +869,8 @@ X = df
 
 X = X.drop('Loan_Status',axis=1) #Remove label
 
-#X = df[['Gender', 'Married', 'Dependents', 'Education', 
- #                          'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 
+#X = df[['Gender', 'Married', 'Dependents', 'Education',
+ #                          'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount',
  #        'LoanAmountTerm', 'PropertyArea', 'CreditHistory']]
 
 
@@ -792,13 +918,13 @@ model_metrics = pd.DataFrame(columns=['Model', 'Accuracy', 'Precision', 'Recall'
 def evaluate_model(model, model_name, X_test, y_test):
     # Predict labels
     y_pred = model.predict(X_test)
-    
+
     # Calculate evaluation metrics
     accuracy = accuracy_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
-    
+
     # Add metrics to the DataFrame
     model_metrics.loc[len(model_metrics)] = [model_name, accuracy, precision, recall, f1]
 
@@ -810,24 +936,46 @@ axes = axes.ravel()
 for i, (name, model) in enumerate(models):
     model.fit(X_train, y_train)
     predicted_y = model.predict(X_test)
-    
+
     scoreTrain = model.score(X_train, y_train)
     scoreTest = model.score(X_test, y_test)
-    
+
     # Print model header with color
     print(colored(f"\n{'='*40}\n{name} Model\n{'='*40}", 'blue'))
     print(colored(f"Train Accuracy: {scoreTrain:.2f}", 'green'))
     print(colored(f"Test Accuracy: {scoreTest:.2f}\n", 'green'))
-    
+
     # Print classification report with color
     print(colored("Classification Report:", 'blue'))
     report = classification_report(y_test, predicted_y)
     print(colored(report, 'yellow'))
-    
+
     sns.heatmap(confusion_matrix(y_test, predicted_y), annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[i])
     axes[i].set_title(f"{name} CONFUSION MATRIX", fontsize=14)
-    
+
     evaluate_model(model, name, X_test, y_test)
+
+
+    # Compute learning curve
+    #train_sizes, train_scores, test_scores = learning_curve(model, X_train, y_train, cv=5)
+
+    # Compute average train and test scores
+    #avg_train_scores = np.mean(train_scores, axis=1)
+    #avg_test_scores = np.mean(test_scores, axis=1)
+
+    # Convert to lists to make them hashable
+   # avg_train_scores = avg_train_scores.tolist()
+    #avg_test_scores = avg_test_scores.tolist()
+
+   # plt.figure(figsize=(10, 6))
+    ##plt.plot(train_sizes, avg_train_scores, label='Training Score')
+    #plt.plot(train_sizes, avg_test_scores, label='Validation Score')
+    #plt.xlabel('Training Set Size')
+   # plt.ylabel('Accuracy')
+    #plt.title(f'Learning Curve for {name}')
+    #plt.legend()
+   # plt.grid(True)
+   # plt.show()
 
 plt.tight_layout()
 plt.show()
@@ -907,6 +1055,37 @@ for model_name in models_list:
     recalls.append(model_metrics_row['Recall'])
     f1_scores.append(model_metrics_row['F1-score'])
 
+#####################
+# Create a DataFrame from the metrics lists
+metrics_df = pd.DataFrame({
+    'Model': models_list,
+    'Accuracy': accuracies,
+    'Precision': precisions,
+    'Recall': recalls,
+    'F1-score': f1_scores
+})
+
+# 3D scatter plot comparison between models
+fig = px.scatter_3d(
+    metrics_df,
+    x='Accuracy',
+    y='Precision',
+    z='Recall',
+    color='F1-score',  # Use F1-score for color to represent overall performance
+    size='F1-score',   # Use F1-score for size to emphasize models with higher F1-scores
+    size_max=18,
+    symbol='Model',    # Use Model for symbols to differentiate between different models
+    opacity=0.7
+)
+
+fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
+
+# Display the plot
+fig.show()
+
+
+#######################
+
 # Bar plot comparison between metrics for each model
 fig = go.Figure()
 for model_name in models_list:
@@ -963,7 +1142,8 @@ for metric in metrics:
     scores[metric] = [model_metrics[model_metrics['Model'] == model_name].iloc[0][metric] for model_name in models_list]
 
 parallel_data = pd.DataFrame(scores)
-colors = plt.cm.tab10(np.linspace(0, 1, len(models_list)))
+colors = plt.cm.tab10(range(len(models_list)))
+
 
 plt.figure(figsize=(12, 6))
 parallel_coordinates(parallel_data, 'Model', colormap='viridis', color=colors)
@@ -979,8 +1159,8 @@ plt.show()
 display_colored_message("MODEL IMPORTANCE FEATURES...")
 #Model importance feature
 
-#feature_labels = np.array(['Gender', 'Married', 'Dependents', 'Education', 'SelfEmployed', 
-#                           'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 
+#feature_labels = np.array(['Gender', 'Married', 'Dependents', 'Education', 'SelfEmployed',
+#                           'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount',
 #         'LoanAmountTerm', 'PropertyArea', 'CreditHistory'])
 
 # Get feature labels from DataFrame columns (excluding the last column)
@@ -991,9 +1171,9 @@ def display_feature_importance(model, model_name, feature_labels):
     if hasattr(model, "feature_importances_"):
         importance = model.feature_importances_
     elif hasattr(model, "coef_"):
-        importance = np.abs(model.coef_[0])
+        importance = model.coef_[0]
     else:
-        return
+        importance = []
 
     feature_indexes_by_importance = importance.argsort()
     print(f"\033[1m\033[34m{'='*40}\nFeature importance for {model_name}:\n{'='*40}\033[0m")
@@ -1004,9 +1184,11 @@ def display_feature_importance(model, model_name, feature_labels):
         print(f"{color_code}{feature_name}: {importance_percentage:.2f}%\033[0m")
     print()
 
+
 # Display feature importance for applicable models
-for name, model in models:
-    display_feature_importance(model, name, feature_labels)
+for i in range(len(models)):
+    name, model_instance = models[i]
+    display_feature_importance(model_instance, name, feature_labels)
 
 
 #############################################################
@@ -1066,7 +1248,7 @@ model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accurac
 early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
 # Training the model
-history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2, 
+history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2,
                     class_weight=class_weights_dict, callbacks=[early_stopping])
 
 # Evaluate the model
