@@ -477,7 +477,72 @@ axes[2].set_xticklabels(axes[2].get_xticklabels(), rotation=0)
 plt.tight_layout()
 plt.show()
 
-##################################
+
+####################################################
+display_colored_message("#D SCATTER PLOT OF LOAN DATA...")
+
+plt.figure(figsize=(15, 10))
+fig = px.scatter_3d(df, 
+                    x='ApplicantIncome', 
+                    y='CoapplicantIncome', 
+                    z='LoanAmount',
+                    color='Loan_Status', 
+                    size='CreditHistory', 
+                    size_max=18,
+                    symbol='Gender', 
+                    opacity=0.7,
+                    title='3D Scatter Plot of Loan Data',
+                    labels={
+                        'ApplicantIncome': 'Applicant Income',
+                        'CoapplicantIncome': 'Coapplicant Income',
+                        'LoanAmount': 'Loan Amount',
+                        'Loan_Status': 'Loan Status',
+                        'CreditHistory': 'Credit History',
+                        'Gender': 'Gender'
+                    })
+
+fig.update_layout(margin=dict(l=0, r=0, b=0, t=0),
+                  scene=dict(
+                      xaxis_title='Applicant Income',
+                      yaxis_title='Coapplicant Income',
+                      zaxis_title='Loan Amount',
+                  ))
+
+fig.show()
+
+
+display_colored_message("#D SCATTER PLOT OF LOAN DATA BY LOAN STATUS AND GENDER...")
+
+plt.figure(figsize=(15, 10))
+fig = px.scatter_3d(df, 
+                    x='LoanAmount', 
+                    y='ApplicantIncome', 
+                    z='LoanAmountTerm',
+                    color='Loan_Status', 
+                    size='CreditHistory', 
+                    size_max=18,
+                    symbol='Gender', 
+                    opacity=0.7,
+                    title='3D Scatter Plot of Loan Data by Loan Status and Gender',
+                    labels={
+                        'LoanAmount': 'Loan Amount',
+                        'ApplicantIncome': 'Applicant Income',
+                        'LoanAmountTerm': 'Loan Term',
+                        'LoanStatus': 'Loan Status',
+                        'CreditHistory': 'Credit History',
+                        'Gender': 'Gender'
+                    })
+
+fig.update_layout(margin=dict(l=0, r=0, b=0, t=0),
+                  scene=dict(
+                      xaxis_title='Loan Amount',
+                      yaxis_title='Applicant Income',
+                      zaxis_title='Loan Term',
+                  ))
+
+fig.show()
+
+####################################################
 dfGroupBy = pd.DataFrame(df.groupby(['Gender'])['Married'].count())
 dfGroupBy.reset_index(inplace=True)
 
@@ -1078,9 +1143,38 @@ fig = px.scatter_3d(
     opacity=0.7
 )
 
+
 fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
 
 # Display the plot
+fig.show()
+
+
+
+# 3D scatter plot comparison between models
+fig = px.scatter_3d(
+    metrics_df,
+    x='Accuracy',
+    y='F1-score',
+    z='Precision',  # Use Precision for z-axis
+    color='Model',  # Use Model for color to differentiate between different models
+    size='F1-score',   # Use F1-score for size to emphasize models with higher F1-scores
+    size_max=18,
+    symbol='Model',    # Use Model for symbols to differentiate between different models
+    opacity=0.7
+)
+
+# Update layout for better visualization
+fig.update_layout(
+    title='Model Performance Comparison',
+    scene=dict(
+        xaxis_title='Accuracy',
+        yaxis_title='F1-score',
+        zaxis_title='Precision'
+    )
+)
+
+# Display the figure
 fig.show()
 
 
