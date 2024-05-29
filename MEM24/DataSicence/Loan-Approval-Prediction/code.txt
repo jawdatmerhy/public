@@ -54,7 +54,7 @@ def display_colored_message(message, color='black', background='orange'):
     display(HTML(f'<span style="color: {color}; background-color: {background};">{message}</span>'))
 
 def display_colored_sub_message(message):
-    print("\044[1;32;40m" + message + "\044[0m")
+    print("\033[1;33;44m" + message + "\033[0m")
 
 
 display_colored_message("THE REQUIRED LIBRARIES WERE SUCCESSFULLY IMPORTED...")
@@ -182,6 +182,7 @@ sns.heatmap(df.isnull(), cbar=True, cmap='inferno')
 plt.show()
 
 ####################################################
+display_colored_message("DROP COLUMNS...")
 # Drop columns
 columns_to_drop = ['Loan_ID']
 df.drop(columns_to_drop, axis=1, inplace=True)
@@ -242,7 +243,7 @@ df["Married"] = le.fit_transform(df["Married"])
 df["Loan_Status"] = le.fit_transform(df["Loan_Status"])
 
 ####################################################
-
+display_colored_message("DISPLAY CORRELATION...")
 dfCopy = df.copy()
 # Filter columns with 'object' dtype
 object_columns = dfCopy.select_dtypes(include=['object']).columns
@@ -258,26 +259,7 @@ plt.figure(figsize=(10,8))
 sns.heatmap(dfCopy.corr(),annot=True,cmap="viridis")
 plt.show()
 
-####################################################
-# Counting the accurance of each value in Gender column
-df['Gender'].value_counts()
 
-plt.figure(figsize=(12, 4))
-sns.countplot(x='Gender', data=df, palette='hls')
-plt.show()
-
-# comparing loan status with gender column
-plt.figure(figsize=(12,4))
-sns.countplot(x = 'Gender',hue ='Loan_Status', data=df , palette='hls')
-plt.show()
-
-#Married people collect more loan than unmarried
-#Counting the occurence of each value with Loan_amount_term column
-df['LoanAmountTerm'].value_counts()
-plt.figure(figsize=(15,6))
-#sns.countplot('Loan_Amount_Term', data = df, palette='hls')
-#plt.xticks(rotation = 90)
-#plt.show()
 
 ###################################################
 display_colored_message("BOX PLOT DATASET...")
@@ -346,8 +328,8 @@ else:
 dfWinsorized = df.copy()
 
  # Winsorize the column 'ApplicantIncome', ApplicantIncome is the column with potential outliers,  2/1030
-#dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.012, 0.012))
-dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.013, 0.013))
+#dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.083, 0.083))
+dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.014, 0.014))
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
 sns.histplot(df['ApplicantIncome'], kde=True)
@@ -370,7 +352,7 @@ print('CoapplicantIncome perc < 10000' , percentilleApplicantIncome)
 print('CoapplicantIncome count < 10000' , count)
 
  # Winsorize the column 'CoapplicantIncome', CoapplicantIncome is the column with potential outliers
-#dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.009, 0.009))
+#dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.031, 0.031))
 dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.01, 0.01))
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
@@ -415,7 +397,30 @@ print("\nTotal number of unique rows with outliers---: \n", totalUniqueOutliers)
 display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
 # Calculate the outliers percentag
 percentOutliers = totalUniqueOutliers / df.shape[0]
-print(f"Percentage of duplicated rows: {percentOutliers * 100:.2f}%")
+print(f"Percentage of outliers: {percentOutliers * 100:.2f}%")
+
+
+# Create figure and axis
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(aspect="equal"))
+
+# Data to plot
+sizes = [percentOutliers * 100, 100 - (percentOutliers * 100)]  # Scale to 100%
+colors = ['#66c2a5', '#fc8d62']  # Custom colors
+
+# Create a pie chart
+wedges, texts = ax.pie(sizes, colors=colors, startangle=90, wedgeprops=dict(width=0.3))
+
+# Draw text in the center of the plot
+plt.text(0, 0, f'{percentOutliers * 100:.2f}%', horizontalalignment='center', verticalalignment='center', fontsize=20, weight='bold')
+
+# Add title
+plt.title('Percentage of outliers')
+
+# Show the plot
+plt.show()
+
+
+
 
 display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
 # Check if there are any duplicated rows and if the percentage is less than 5%
@@ -441,8 +446,41 @@ plt.title("Outliers")
 # Show the plot
 plt.show()
 
+
+####################################################
+# plotting boxplot
+plt.figure(figsize=(12,4))
+sns.boxplot(x='Loan_Status',y = 'ApplicantIncome', data=df)
+plt.show()
+
+plt.figure(figsize=(12,4))
+sns.boxplot(x='Loan_Status',y = 'CoapplicantIncome', data=df)
+plt.show()
+
+
 ####################################################
 display_colored_message("DATA VISULAZATION...")
+
+####################################################
+# Counting the accurance of each value in Gender column
+df['Gender'].value_counts()
+
+plt.figure(figsize=(12, 4))
+sns.countplot(x='Gender', data=df, palette='hls')
+plt.show()
+
+# comparing loan status with gender column
+plt.figure(figsize=(12,4))
+sns.countplot(x = 'Gender',hue ='Loan_Status', data=df , palette='hls')
+plt.show()
+
+#Married people collect more loan than unmarried
+#Counting the occurence of each value with Loan_amount_term column
+df['LoanAmountTerm'].value_counts()
+plt.figure(figsize=(15,6))
+#sns.countplot('Loan_Amount_Term', data = df, palette='hls')
+#plt.xticks(rotation = 90)
+#plt.show()
 
 # Creating cross-tabulations
 crosstab1 = pd.crosstab(df.Gender, df.Married)
@@ -667,7 +705,7 @@ bar_charts(
 )
 
 ####################################################
-
+display_colored_message("\nLOAN AMOUNT DISTRIBUTION...")
 fig, axs1 = plt.subplots(1, 3, figsize=(18, 6))
 
 # Create violin plots for ApplicantIncome, CoapplicantIncome, and LoanAmount
@@ -684,7 +722,7 @@ axs1[2].set_title('Loan Amount Distribution')
 plt.tight_layout()
 plt.show()
 ####################################################
-
+display_colored_message("\nPIE VISULAZATION...")
 
 #DATA visulazation
 d_labels = ['Male', 'Female']
@@ -803,16 +841,6 @@ plt.tight_layout()
 # Show the plots
 plt.show()
 
-####################################################
-# plotting boxplot
-plt.figure(figsize=(12,4))
-sns.boxplot(x='Loan_Status',y = 'ApplicantIncome', data=df)
-plt.show()
-
-plt.figure(figsize=(12,4))
-sns.boxplot(x='Loan_Status',y = 'CoapplicantIncome', data=df)
-plt.show()
-
 ####################################
 # Create a figure with multiple subplots
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -916,7 +944,8 @@ le = LabelEncoder()
 for col in object_columns:
     df[col] = le.fit_transform(df[col])
 
-#df.head()
+
+print(colored(tabulate(df.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 
 ##############################################
 display_colored_message("SAVE PROCESSED CSV FILE ...")
@@ -924,13 +953,16 @@ display_colored_message("SAVE PROCESSED CSV FILE ...")
 df.to_csv('/content/sample_data/loan_processed.csv', index=True)
 
 ##############################################
+display_colored_message("MODEL DATA SPLIT...")
 # Dropping multiple columns in a single call
-columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents']
+columns_to_drop = ['SelfEmployed', 'ApplicantIncome']
+#columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents']
 #columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents', 'Married', 'PropertyArea']
-df = df.drop(columns=columns_to_drop)
+df_train = df.copy()
+df_train = df_train.drop(columns=columns_to_drop)
 
-print (df.shape)
-X = df
+print (df_train.shape)
+X = df_train
 
 X = X.drop('Loan_Status',axis=1) #Remove label
 
@@ -943,21 +975,21 @@ X = X.drop('Loan_Status',axis=1) #Remove label
 
 # Standardization (Normalization)
 standard_scaler = StandardScaler()
-#X = standard_scaler.fit_transform(X)
+#X_scaled = standard_scaler.fit_transform(X)
 
 # Min-Max Scaling (Rescaling)
 min_max_scaler = MinMaxScaler()
-X = min_max_scaler.fit_transform(X)
+X_scaled = min_max_scaler.fit_transform(X)
 
+y = df_train.Loan_Status
 
-y = df.Loan_Status
-
-display_colored_message("MODEL DATA SPLIT...")
 
 # Data Splitting
 
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2,
+X_train, X_test, y_train, y_test = train_test_split(X_scaled,y, test_size = 0.2,
 random_state = 42)
+
+print(colored(tabulate(df_train.head(1), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 
 ##############################################
 display_colored_message("MODELS SCORE AND CONFUSION MATRIX...")
@@ -1007,8 +1039,8 @@ for i, (name, model) in enumerate(models):
 
     # Print model header with color
     print(colored(f"\n{'='*40}\n{name} Model\n{'='*40}", 'blue'))
-    print(colored(f"Train Accuracy: {scoreTrain:.2f}", 'green'))
-    print(colored(f"Test Accuracy: {scoreTest:.2f}\n", 'green'))
+    print(colored(f"Train Accuracy: {scoreTrain:.3f}", 'green'))
+    print(colored(f"Test Accuracy: {scoreTest:.3f}\n", 'green'))
 
     # Print classification report with color
     print(colored("Classification Report:", 'blue'))
@@ -1258,7 +1290,7 @@ display_colored_message("MODEL IMPORTANCE FEATURES...")
 #         'LoanAmountTerm', 'PropertyArea', 'CreditHistory'])
 
 # Get feature labels from DataFrame columns (excluding the last column)
-feature_labels = df.columns[:-1].values
+feature_labels = df_train.columns[:-1].values
 
 # Function to display feature importance
 def display_feature_importance(model, model_name, feature_labels):
