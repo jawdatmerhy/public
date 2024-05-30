@@ -217,6 +217,7 @@ fig = go.Figure(go.Indicator(
 ))
 fig.show()
 
+
 ####################################################
 display_colored_message("FILL MISSING VALUES...")
 
@@ -252,7 +253,7 @@ df['PropertyArea'] = df['PropertyArea'].fillna(df['PropertyArea'].mode()[0])
 print('Total missing values After fillna : ', df.isnull().sum().sum())
 
 ####################################################
-display_colored_message("DEALING WITH CATEGORICAL VALUES...")
+display_colored_message("\nDEALING WITH CATEGORICAL VALUES...")
 # Dealing with Categorical values
 
 # Gender Column
@@ -314,7 +315,6 @@ for col in object_columns:
 plt.figure(figsize=(10,8))
 sns.heatmap(dfCopy.corr(),annot=True,cmap="viridis")
 plt.show()
-
 
 
 ###################################################
@@ -590,7 +590,7 @@ plt.show()
 
 
 ####################################################
-display_colored_message("#D SCATTER PLOT OF LOAN DATA...")
+display_colored_message("3D SCATTER PLOT OF LOAN DATA...")
 
 plt.figure(figsize=(15, 10))
 fig = px.scatter_3d(df, 
@@ -622,7 +622,7 @@ fig.update_layout(margin=dict(l=0, r=0, b=0, t=0),
 fig.show()
 
 
-display_colored_message("#D SCATTER PLOT OF LOAN DATA BY LOAN STATUS AND GENDER...")
+display_colored_message("3D SCATTER PLOT OF LOAN DATA BY LOAN STATUS AND GENDER...")
 
 plt.figure(figsize=(15, 10))
 fig = px.scatter_3d(df, 
@@ -712,9 +712,7 @@ print("\n")
 # Group the DataFrame by 'Gender' and calculate the mean of 'LoanAmount'
 np = round(df.groupby('Gender')['LoanAmount'].mean().round(1))
 
-
 def bar_charts(x, y, title):
-
     # Create a bar chart using Plotly Express
     fig = px.bar(
         x=x,  # Data for the x-axis
@@ -723,51 +721,12 @@ def bar_charts(x, y, title):
         color=y,  # Color the bars based on y-values
         labels={'x': 'Gender', 'y': 'Average LoanAmount'},  # Custom axis labels
         text=y  # Add text labels to the bars
+        ,width=900, height=500
     )
 
-    # Customize the layout
-    fig.update_layout(
-        paper_bgcolor='#111',  # Set the background color of the entire plot
-        plot_bgcolor='#111',   # Set the background color of the plot area
-        font_color='white',     # Set the font color
-        font=dict(size=20)     # Set the font size
-    ),
-    fig.update_layout(
-    xaxis=dict(
-        showgrid=False,
-        showticklabels=True,
-        ticks='outside',
-        tickfont=dict(
-            size=15,
-            family='Ariel',
-            color='white'
-        ),
-        showline=True,
-        linewidth=5,
-        linecolor='rgb(204, 204, 204)'
-    ),
-    yaxis=dict(
-        showgrid=False,
-        showticklabels=True,
-        ticks='outside',
-        tickfont=dict(
-            size=15,
-            family='Ariel',
-            color='white'
-        ),
-        showline=True,
-        linewidth=5,
-        linecolor='rgb(204, 204, 204)'
-    ),
-    title=dict(
-        text=title,
-        font=dict(
-            size=30,
-            family='Ariel'
-        )
-    ),
-    showlegend=True
-    )
+    # Use a dark template
+    fig.update_layout(template='plotly_dark')
+
     fig.show()
 
 # Call the bar_charts function to generate a bar chart
@@ -776,6 +735,27 @@ bar_charts(
     np.values,          # Data for the y-axis (average loan Amount)
     'Average Loan Amount by Gender'  # Title of the chart
 )
+
+####################################################
+display_colored_message("\nMEAN APPLICANT INCOME BY LOAN STATUS...")
+
+# Group by 'Loan_Status' and calculate mean 'ApplicantIncome'
+income_mean = df.groupby('Loan_Status')['ApplicantIncome'].mean().reset_index()
+
+# Create advanced bar chart using Plotly Express
+fig = px.bar(income_mean, x='Loan_Status', y='ApplicantIncome',
+             color='Loan_Status',
+             labels={'ApplicantIncome': 'Mean Applicant Income'},
+             title='Mean Applicant Income by Loan Status',
+             text='ApplicantIncome',
+             width=900, height=500)
+
+# Update layout
+fig.update_layout(xaxis_title='Loan Status', yaxis_title='Mean Applicant Income',
+                  showlegend=False, barmode='group')
+
+# Show the plot
+fig.show()
 
 ####################################################
 display_colored_message("\nLOAN AMOUNT DISTRIBUTION...")
@@ -794,6 +774,38 @@ axs1[2].set_title('Loan Amount Distribution')
 # Adjust layout
 plt.tight_layout()
 plt.show()
+
+####################################################
+display_colored_message("\nLOAN STATUS DISTRIBUTION - LOAN TERM AMOUNT...")
+
+# Set the style and context for seaborn
+sns.set_context("paper", font_scale=1.1)
+
+# Create two subplots side by side
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+# Plot 1: Distribution of Loan Amount Term by Loan Approval
+sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[0])
+sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[0])
+axes[0].legend(["No Loan", "Loan"], loc='upper right')
+axes[0].set_ylabel('Density')
+axes[0].set_xlabel('Loan Amount Term')
+axes[0].set_title('Distribution of Loan Amount Term by Loan Approval')
+
+# Plot 2: Distribution of Loan Amount by Loan Approval
+sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[1])
+sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[1])
+axes[1].legend(["No Loan", "Loan"], loc='upper right')
+axes[1].set_ylabel('Density')
+axes[1].set_xlabel('Loan Amount')
+axes[1].set_title('Distribution of Loan Amount by Loan Approval')
+
+# Adjust layout to prevent overlap
+plt.tight_layout()
+
+# Show the plots
+plt.show()
+
 ####################################################
 display_colored_message("\nPIE VISULAZATION...")
 
@@ -828,6 +840,8 @@ fig.update_layout(
 fig.show()
 
 ####################################################
+display_colored_message("\nPIE LOAN STATUS DISTRIBUTION VS DEPENDENTS...")
+
 # Find the most repeated Dependents value for each Loan_Status
 mode_dependents = df.groupby('Loan_Status')['Dependents'].apply(lambda x: x.mode().iloc[0]).to_dict()
 
@@ -882,39 +896,13 @@ fig.gca().add_artist(centre_circle)
 # Set equal aspect ratio
 plt.axis('equal')
 
-plt.title('Loan Status Distribution w.r.t Dependents: Zero, One, Two, Three+', fontsize=14, y=1)
+plt.title('Loan Status Distribution vs Dependents: Zero, One, Two, Three+', fontsize=14, y=1)
 plt.show()
 
-####################################################
-# Set the style and context for seaborn
-sns.set_context("paper", font_scale=1.1)
 
-# Create two subplots side by side
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+##################################################
+display_colored_message("\n LOAN STATUS DISTRIBUTION...")
 
-# Plot 1: Distribution of Loan Amount Term by Loan Approval
-sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[0])
-sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[0])
-axes[0].legend(["No Loan", "Loan"], loc='upper right')
-axes[0].set_ylabel('Density')
-axes[0].set_xlabel('Loan Amount Term')
-axes[0].set_title('Distribution of Loan Amount Term by Loan Approval')
-
-# Plot 2: Distribution of Loan Amount by Loan Approval
-sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[1])
-sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[1])
-axes[1].legend(["No Loan", "Loan"], loc='upper right')
-axes[1].set_ylabel('Density')
-axes[1].set_xlabel('Loan Amount')
-axes[1].set_title('Distribution of Loan Amount by Loan Approval')
-
-# Adjust layout to prevent overlap
-plt.tight_layout()
-
-# Show the plots
-plt.show()
-
-####################################
 # Create a figure with multiple subplots
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
@@ -949,6 +937,7 @@ plt.tight_layout()
 plt.show()
 
 ##################################################
+display_colored_message("\n DISTRIBUTION BASED ON COUNT...")
 
 num_cols = 3
 num_rows = (len(df.columns) + num_cols - 1) // num_cols
@@ -1076,9 +1065,9 @@ models = [
     ("Decision Tree", DecisionTreeClassifier()),
     ("Random Forest", RandomForestClassifier()),
     ("K Nearest Neighbors", KNeighborsClassifier(n_neighbors=5)),
-    ("Naive Bayes", GaussianNB()),
+    ("Naive Bayes GNB", GaussianNB()),
     ("SVM", SGDClassifier(loss='log', random_state=42)),
-    ("BernoulliNB", BernoulliNB()),
+    ("Naive Bayes BNB", BernoulliNB()),
     ("MLPClassifier", MLPClassifier()),
     ("XG Boost", XGBClassifier())
 ]
@@ -1285,7 +1274,8 @@ fig.update_layout(
 fig.show()
 
 
-#######################
+##############################################
+display_colored_message("MODEL PERFORMANCE BY METRICS...")
 
 # Bar plot comparison between metrics for each model
 fig = go.Figure()
@@ -1296,7 +1286,8 @@ for model_name in models_list:
         x=metrics,
         y=metrics_values,
         name=model_name,
-        marker=dict(color=px.colors.qualitative.Plotly[model_index])
+        marker=dict(color=px.colors.qualitative.Plotly[model_index]),
+        width=0.08
     ))
 
 fig.update_layout(
@@ -1305,6 +1296,8 @@ fig.update_layout(
     xaxis_title='Metrics',
     yaxis_title='Score',
     legend_title='Model',
+    width=1400,  # Adjust the width of the plot
+    height=500  # Optionally adjust the height of the plot
 )
 fig.show()
 
@@ -1391,13 +1384,15 @@ print(scaled_team_data)
 
 # Assuming you have trained your models list previously
 
-#"Logistic Regression" "Decision Tree" "Random Forest" "K Nearest Neighbors" "Naive Bayes"
-#"SVM" "BernoulliNB" "MLPClassifier" "XG Boost"
+#"Logistic Regression" "Decision Tree" "Random Forest" "K Nearest Neighbors" "Naive Bayes GNB"
+#"SVM" "Naive Bayes BNB" "MLPClassifier" "XG Boost"
+
+MODEL_SELECTED = "Naive Bayes BNB"
 
 # Find Best model in the models list
 best_model = None
 for name, model in models:
-    if name == "MLPClassifier":
+    if name == MODEL_SELECTED:
         best_model = model
         break
 
@@ -1407,10 +1402,9 @@ if best_model is not None:
     # Make predictions using best_model model
     predictions = best_model.predict(scaled_team_data)
     # Now you have predictions using best_model model
-    print(predictions)
+    print(f"{MODEL_SELECTED} prediction:", predictions)
 else:
-    print("MLPClassifier model not found in the models list.")
-
+    print(f"{MODEL_SELECTED} model not found in the models list.")
 
 ####################################################
 display_colored_message("MODEL IMPORTANCE FEATURES...")
@@ -1455,106 +1449,7 @@ for i in range(len(models)):
     display_feature_importance(model_instance, name, feature_labels)
 
 
-# Given DataFrame
-teamData = pd.DataFrame({
-    'Loan_ID': ['1', '2', '3'],
-    'Gender': ['1', '0', '1'],
-    'Married': ['1', '0', '0'],
-    'Dependents': ['2', '0', '0'],
-    'Education': ['1', '0', '1'],
-    'SelfEmployed': ['0', '0', '0'],
-    'ApplicantIncome': [4000, 10000, 3000],
-    'CoapplicantIncome': [2000.0, 0.0, 2000.0],
-    'LoanAmount': [100, 0.0, 66.0],
-    'LoanAmountTerm': [180, 180.0, 180.0],
-    'CreditHistory': [1, 1, 0],
-    'PropertyArea': ['0', '1', '0'],
-})
-
-print(colored(tabulate(teamData.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
-teamData = teamData.drop(columns=['Loan_ID'])
-teamData = teamData.drop(columns=['SelfEmployed'])
-#teamData = teamData.drop(columns=['ApplicantIncome'])
-
-#df_train = df_train.drop(columns=['Loan_Status'])
-#print(colored(tabulate(df_train.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
-
-scaler = MinMaxScaler()
-# Fit and transform the data
-scaled_team_data = scaler.fit_transform(teamData)
-
-print(scaled_team_data)
-
-# Assuming you have trained your models list previously
-
-# Find BernoulliNB model in the models list
-bernoulli_nb_model = None
-for name, model in models:
-    if name == "BernoulliNB":
-        bernoulli_nb_model = model
-        break
-
-# Check if BernoulliNB model is found
-if bernoulli_nb_model is not None:
-    # Assuming you have your data for prediction stored in X_pred
-    # Make predictions using BernoulliNB model
-    predictions = bernoulli_nb_model.predict(scaled_team_data)
-    # Now you have predictions using BernoulliNB model
-    print(predictions)
-else:
-    print("BernoulliNB model not found in the models list.")
-
-##############################################
-display_colored_message("MODEL TEST...")
-
-# Given DataFrame
-teamData = pd.DataFrame({
-    'Loan_ID': ['1', '2', '3'],
-    'Gender': ['1', '0', '1'],
-    'Married': ['1', '0', '0'],
-    'Dependents': ['2', '0', '0'],
-    'Education': ['1', '0', '1'],
-    'SelfEmployed': ['0', '0', '0'],
-    'ApplicantIncome': [4000, 10000, 3000],
-    'CoapplicantIncome': [2000.0, 0.0, 2000.0],
-    'LoanAmount': [100, 0.0, 66.0],
-    'LoanAmountTerm': [180, 180.0, 180.0],
-    'CreditHistory': [1, 1, 0],
-    'PropertyArea': ['0', '1', '0'],
-})
-
-print(colored(tabulate(teamData.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
-teamData = teamData.drop(columns=['Loan_ID'])
-teamData = teamData.drop(columns=['SelfEmployed'])
-teamData = teamData.drop(columns=['Gender'])
-
-#df_train = df_train.drop(columns=['Loan_Status'])
-#print(colored(tabulate(df_train.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
-
-scaler = MinMaxScaler()
-# Fit and transform the data
-scaled_team_data = scaler.fit_transform(teamData)
-
-print(scaled_team_data)
-
-# Assuming you have trained your models list previously
-
-# Find BernoulliNB model in the models list
-bernoulli_nb_model = None
-for name, model in models:
-    if name == "BernoulliNB":
-        bernoulli_nb_model = model
-        break
-
-# Check if BernoulliNB model is found
-if bernoulli_nb_model is not None:
-    # Assuming you have your data for prediction stored in X_pred
-    # Make predictions using BernoulliNB model
-    predictions = bernoulli_nb_model.predict(scaled_team_data)
-    # Now you have predictions using BernoulliNB model
-    print(predictions)
-else:
-    print("BernoulliNB model not found in the models list.")    
+ 
 
 #############################################################
 display_colored_message("DEEP LEARNING...")
