@@ -211,6 +211,16 @@ else:
 # Optional: print the percentage of duplication
 print(f"Percentage of duplicated rows: {percent_duplication * 100:.2f}%")
 
+fig = go.Figure(go.Indicator(
+    mode = "gauge+number",
+    gauge = {
+       'axis': {'range': [None, 100]}},
+    value = percent_duplication,
+    title = {'text': "Duplication %"},
+    domain = {'x': [0, 1], 'y': [0, 1]}
+))
+fig.show()
+
 ####################################################
 display_colored_message("FILL MISSING VALUES...")
 #Missing Value
