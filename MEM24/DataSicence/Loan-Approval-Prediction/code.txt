@@ -1311,6 +1311,13 @@ def display_feature_importance(model, model_name, feature_labels):
     else:
         importance = []
 
+    print(f"\033[1m\033[34m{'='*40}\nFeature importance for {model_name}:\n{'='*40}\033[0m")
+    # Creating a series for feature importances
+    feat_importances = pd.Series(importance, index=feature_labels)
+    feat_importances.nlargest(12).plot(kind='barh')
+    plt.title(f"Feature Importance for {model_name}")
+    plt.show()
+
     feature_indexes_by_importance = importance.argsort()
     print(f"\033[1m\033[34m{'='*40}\nFeature importance for {model_name}:\n{'='*40}\033[0m")
     for index in feature_indexes_by_importance:
