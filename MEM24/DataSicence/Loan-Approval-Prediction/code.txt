@@ -341,223 +341,119 @@ plt.title("Outliers")
 plt.show()
 
 ####################################################
-display_colored_message("REMOVE OUTLIERS...")
-display_colored_sub_message("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
-dfOutliers = df[['ApplicantIncome', 'CoapplicantIncome', 'LoanAmount']]
-# Calculate Q1, Q3, and IQR
-Q1 = dfOutliers.quantile(0.25)
-Q3 = dfOutliers.quantile(0.75)
-#Q1 = np.percentile(dfAge, 25, interpolation = 'midpoint')
-#Q3 = np.percentile(dfAge, 75, interpolation = 'midpoint')
+display_colored_message("HANDLE OUTLIERS...")
 
-IQR = Q3 - Q1
-# Define lower and upper bounds
-lowerBound = Q1 - 1.5 * IQR
-upperBound = Q3 + 1.5 * IQR
-print("Outliers lowerBound: \n", lowerBound)
-print("Outliers upperBound: \n", upperBound)
-# Identify potential outliers
-potentialOutliers = dfOutliers[(dfOutliers < lowerBound) | (dfOutliers > upperBound)]
-potentialOutliersRowCount = potentialOutliers.notnull().sum()
-display_colored_sub_message(f"\nSum of each outliers: {potentialOutliersRowCount}")
+def calculate_outliers(df, columns):
+    Q1 = df[columns].quantile(0.25)
+    Q3 = df[columns].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    potential_outliers = df[columns][(df[columns] < lower_bound) | (df[columns] > upper_bound)]
+    return lower_bound, upper_bound, potential_outliers
 
-display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the number of unique rows containing outliers")
-# Get unique rows containing outliers
-uniqueOutlierRows = potentialOutliers.any(axis=1)
-dfUniqueOutliers = df[uniqueOutlierRows]
-# Count the total number of unique rows with outliers
-totalUniqueOutliers = dfUniqueOutliers.shape[0]
-display_colored_sub_message(f"\nTotal number of unique rows with outliers: {totalUniqueOutliers}")
+def plot_pie_chart(percent_outliers):
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(aspect="equal"))
+    sizes = [percent_outliers * 100, 100 - (percent_outliers * 100)]
+    colors = ['#66c2a5', 'Yellow']
+    wedges, _ = ax.pie(sizes, colors=colors, startangle=90, wedgeprops=dict(width=0.3))
+    plt.text(0, 0, f'{percent_outliers * 100:.2f}%', ha='center', va='center', fontsize=20, weight='bold')
+    plt.title('Percentage of outliers')
+    plt.show()
 
-display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
-# Calculate the outliers percentag
-percentOutliers = totalUniqueOutliers / df.shape[0]
-display_colored_sub_message(f"Percentage of outliers before treatment : {percentOutliers * 100:.2f}%")
+columns_to_check = ['ApplicantIncome', 'CoapplicantIncome', 'LoanAmount']
+lower_bound, upper_bound, potential_outliers = calculate_outliers(df, columns_to_check)
 
+print("Outliers lowerBound: \n", lower_bound)
+print("Outliers upperBound: \n", upper_bound)
 
-# Create figure and axis
-fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(aspect="equal"))
+potential_outliers_row_count = potential_outliers.notnull().sum()
+display_colored_message(f"\nSum of each outliers: {potential_outliers_row_count}", "blue")
 
-# Data to plot
-sizes = [percentOutliers * 100, 100 - (percentOutliers * 100)]  # Scale to 100%
-colors = ['#66c2a5', 'Yellow']  # Custom colors
+unique_outlier_rows = potential_outliers.any(axis=1)
+df_unique_outliers = df[unique_outlier_rows]
+total_unique_outliers = df_unique_outliers.shape[0]
+display_colored_message(f"\nTotal number of unique rows with outliers: {total_unique_outliers}", "blue")
 
-# Create a pie chart
-wedges, texts = ax.pie(sizes, colors=colors, startangle=90, wedgeprops=dict(width=0.3))
+percent_outliers = total_unique_outliers / df.shape[0]
+display_colored_message(f"Percentage of outliers before treatment : {percent_outliers * 100:.2f}%", "blue")
 
-# Draw text in the center of the plot
-plt.text(0, 0, f'{percentOutliers * 100:.2f}%', horizontalalignment='center', verticalalignment='center', fontsize=20, weight='bold')
+plot_pie_chart(percent_outliers)
 
-# Add title
-plt.title('Percentage of outliers')
-
-# Show the plot
-plt.show()
-
-display_colored_sub_message(f"\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
-# Check if there are any duplicated rows and if the percentage is less than 5%
-if 0 < percentOutliers < 0.05:
-    display_colored_sub_message("\n>>>>>>>>>>>>>> Remove outliers")
+if 0 < percent_outliers < 0.05:
+    display_colored_message("\nRemoving outliers", "blue")
 else:
-    print("We can not remove all outliers, percengtage is higer than 5%")
+    print("Outliers percentage too high > 5%")
 
-dfWinsorized = df.copy()
+####################################################
+display_colored_message("REMOVE OUTLIERS...")
 
-count = df[df['ApplicantIncome'] < 20000].shape[0]
-percentilleApplicantIncome = (df.shape[0] - count) / df.shape[0] / 100
-display_colored_sub_message(f'ApplicantIncome [count < 10000] : {count}')
-display_colored_sub_message(f'ApplicantIncome [perc < 10000] : {percentilleApplicantIncome}')
+def winsorize_column(df, column, lower_limit, upper_limit):
+    count = df[df[column] < upper_limit].shape[0]
+    percentile = (df.shape[0] - count) / df.shape[0]
+    display_colored_message(f'{column} [count < {upper_limit}] : {count}', "blue")
+    display_colored_message(f'{column} [perc < {upper_limit}] : {percentile}', "blue")
+    winsorized_column = f'{column}_winsorized'
+    df[winsorized_column] = winsorize(df[column], limits=(lower_limit, upper_limit))
+    plot_histograms(df, column, winsorized_column)
+    df[column] = df[winsorized_column]
 
+def plot_histograms(df, column, winsorized_column):
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    sns.histplot(df[column], kde=True)
+    plt.title(f'Before Winsorization of {column}')
+    plt.subplot(1, 2, 2)
+    sns.histplot(df[winsorized_column], kde=True)
+    plt.title(f'After Winsorization {column}')
+    plt.show()
+
+def plot_stripplot(df, columns):
+    plt.figure(figsize=(12, 6))
+    sns.stripplot(data=df[columns], color="red", jitter=0.3, size=5)
+    plt.title("Outliers")
+    plt.show()
+
+def plot_boxplots(df, columns):
+    for column in columns:
+        plt.figure(figsize=(8, 3))
+        sns.boxplot(x='Loan_Status', y=column, data=df)
+        plt.title(f'Boxplot of {column}')
+        plt.show()
+
+
+df_winsorized = df.copy()
 
 # Winsorize the column 'ApplicantIncome', ApplicantIncome is the column with potential outliers,  ~ 50/614 = 0.0815
-dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.0001, 0.084))
-#dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.0001, percentilleApplicantIncome))
-
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-sns.histplot(df['ApplicantIncome'], kde=True)
-plt.title('Before Winsorization of ApplicantIncome')
-plt.subplot(1, 2, 2)
-sns.histplot(dfWinsorized['ApplicantIncome_winsorized'], kde=True)
-plt.title('After Winsorization ApplicantIncome')
-plt.show()
-#Replace orginal value
-df['ApplicantIncome'] = dfWinsorized['ApplicantIncome_winsorized']
-
-count = df[df['CoapplicantIncome'] < 10000].shape[0]
-percentilleCoapplicantIncome= (df.shape[0] - count) / df.shape[0]
-display_colored_sub_message(f'CoapplicantIncome [perc < 10000 ] : {percentilleApplicantIncome}')
-display_colored_sub_message(f'CoapplicantIncome [count < 10000] : {count}')
+winsorize_column(df_winsorized, 'ApplicantIncome', 0.0001, 0.084)
 
 # Winsorize the column 'CoapplicantIncome', CoapplicantIncome is the column with potential outliers ~ 18/614 = 0.0295
-#dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.0001, percentilleCoapplicantIncome))
-dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.0001, 0.03))
-
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-sns.histplot(df['CoapplicantIncome'], kde=True)
-plt.title('Before Winsorization of CoapplicantIncome')
-plt.subplot(1, 2, 2)
-sns.histplot(dfWinsorized['CoapplicantIncome_winsorized'], kde=True)
-plt.title('After Winsorization CoapplicantIncome')
-plt.show()
-#Replace orginal value
-df['CoapplicantIncome'] = dfWinsorized['CoapplicantIncome_winsorized']
-
-count = df[df['LoanAmount'] < 10000].shape[0]
-percentilleLoanAmount = (df.shape[0] - count) / df.shape[0]
-display_colored_sub_message(f'LoanAmount [perc < 10000] : {percentilleLoanAmount}')
-display_colored_sub_message(f'LoanAmount [count < 10000] : {count}')
+winsorize_column(df_winsorized, 'CoapplicantIncome', 0.0001, 0.031)
 
 # Winsorize the column 'LoanAmount', LoanAmount is the column with potential outliers ~ 41/614 = 0.067
-dfWinsorized['LoanAmount_winsorized'] = winsorize(dfWinsorized['LoanAmount'], limits=(0.0001, 0.085))
-#dfWinsorized['LoanAmount_winsorized'] = winsorize(dfWinsorized['LoanAmount'], limits=(0.0001, percentilleLoanAmount))
+winsorize_column(df_winsorized, 'LoanAmount', 0.0001, 0.085)
 
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-sns.histplot(df['LoanAmount'], kde=True)
-plt.title('Before Winsorization of CoapLoanAmountplicantIncome')
-plt.subplot(1, 2, 2)
-sns.histplot(dfWinsorized['LoanAmount_winsorized'], kde=True)
-plt.title('After Winsorization LoanAmount')
-plt.show()
-#Replace orginal value
-df['LoanAmount'] = dfWinsorized['LoanAmount_winsorized']
+df[columns_to_check] = df_winsorized[columns_to_check]
 
+lower_bound, upper_bound, potential_outliers = calculate_outliers(df, columns_to_check)
 
-display_colored_sub_message("\n>>>>>>>>>>>>>> Q1, Q3, and IQR for dataset")
-dfOutliers = df[['ApplicantIncome', 'CoapplicantIncome', 'LoanAmount']]
-# Calculate Q1, Q3, and IQR
-Q1 = dfOutliers.quantile(0.25)
-Q3 = dfOutliers.quantile(0.75)
-#Q1 = np.percentile(dfAge, 25, interpolation = 'midpoint')
-#Q3 = np.percentile(dfAge, 75, interpolation = 'midpoint')
+print("Outliers --lowerBound:\n", lower_bound)
+print("Outliers --upperBound:\n", upper_bound)
+potential_outliers_row_count = potential_outliers.notnull().sum()
+print("\nSum of each outliers:\n", potential_outliers_row_count)
 
-IQR = Q3 - Q1
-# Define lower and upper bounds
-lowerBound = Q1 - 1.5 * IQR
-upperBound = Q3 + 1.5 * IQR
-print("Outliers --lowerBound: \n", lowerBound)
-print("Outliers --upperBound: \n", upperBound)
-# Identify potential outliers
-potentialOutliers = dfOutliers[(dfOutliers < lowerBound) | (dfOutliers > upperBound)]
-potentialOutliersRowCount = potentialOutliers.notnull().sum()
-print("\nSum of each outliers: \n", potentialOutliersRowCount)
+unique_outlier_rows = potential_outliers.any(axis=1)
+df_unique_outliers = df[unique_outlier_rows]
+total_unique_outliers = df_unique_outliers.shape[0]
+print("\nTotal number of unique rows with outliers:\n", total_unique_outliers)
 
-display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the number of unique rows containing outliers")
-# Get unique rows containing outliers
-uniqueOutlierRows = potentialOutliers.any(axis=1)
-dfUniqueOutliers = df[uniqueOutlierRows]
-# Count the total number of unique rows with outliers
-totalUniqueOutliers = dfUniqueOutliers.shape[0]
-print("\nTotal number of unique rows with outliers---: \n", totalUniqueOutliers)
+percent_outliers = total_unique_outliers / df.shape[0]
+print(f"Percentage of outliers: {percent_outliers * 100:.2f}%")
+plot_pie_chart(percent_outliers)
 
-####################################################
-display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
-# Calculate the outliers percentage
-percentOutliers = totalUniqueOutliers / df.shape[0]
-print(f"Percentage of outliers: {percentOutliers * 100:.2f}%")
+plot_stripplot(df, columns_to_check)
 
-
-# Create figure and axis
-fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(aspect="equal"))
-
-# Data to plot
-sizes = [percentOutliers * 100, 100 - (percentOutliers * 100)]  # Scale to 100%
-colors = ['#66c2a5', '#fc8d62']  # Custom colors
-
-# Create a pie chart
-wedges, texts = ax.pie(sizes, colors=colors, startangle=90, wedgeprops=dict(width=0.3))
-
-# Draw text in the center of the plot
-plt.text(0, 0, f'{percentOutliers * 100:.2f}%', horizontalalignment='center', verticalalignment='center', fontsize=20, weight='bold')
-
-# Add title
-plt.title('Percentage of outliers')
-
-# Show the plot
-plt.show()
-
-
-display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
-# Check if there are any duplicated rows and if the percentage is less than 5%
-if 0 < percentOutliers < 0.05:
-    display_colored_sub_message("\n>>>>>>>>>>>>>> Remove outliers")
-else:
-    print("We can not remove all outliers, percengtage is higer than 5%")
-
-####################################################
-#After outlier
-# Set the figure size
-plt.figure(figsize=(15, 10))
-
-# Only variables that have outliers
-outliersColumns = df.get(["ApplicantIncome", "CoapplicantIncome", "LoanAmount", "LoanAmountTerm"])
-
-# Add outliers to the plot
-sns.stripplot(data=outliersColumns, color="red", jitter=0.3, size=5)
-
-# Set the axis labels and title
-plt.title("Outliers")
-
-# Show the plot
-plt.show()
-
-
-####################################################
-# plotting boxplot
-plt.figure(figsize=(12,4))
-sns.boxplot(x='Loan_Status',y = 'ApplicantIncome', data=df)
-plt.show()
-
-plt.figure(figsize=(12,4))
-sns.boxplot(x='Loan_Status',y = 'CoapplicantIncome', data=df)
-plt.show()
-
-plt.figure(figsize=(12,4))
-sns.boxplot(x='Loan_Status',y = 'LoanAmount', data=df)
-plt.show()
-
+plot_boxplots(df, columns_to_check)
 
 ####################################################
 display_colored_message("DATA VISULAZATION...")
@@ -1047,8 +943,7 @@ df.to_csv('/content/sample_data/loan_processed.csv', index=True)
 display_colored_message("MODEL DATA SPLIT..")
 
 # Dropping multiple columns in a single call
-columns_to_drop = ['SelfEmployed', 'Gender']
-#columns_to_drop = ['SelfEmployed', 'Gender', 'Dependents']
+columns_to_drop = ['SelfEmployed']
 #columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents', 'Married', 'PropertyArea']
 
 df_train = df.copy()
@@ -1065,9 +960,13 @@ X = X.drop('Loan_Status',axis=1) #Remove label
  #        'LoanAmountTerm', 'PropertyArea', 'CreditHistory']]
 
 
+#SMOTE for imbalenced Dat
+#smote=SMOTE()
+#X,y=smote.fit_resample(X,y)
+
 # Rescale and normalize the features
 # Standardization (Normalization)
-scaler = StandardScaler()
+#scaler = StandardScaler()
 #X_scaled = scaler.fit_transform(X)
 
 # Min-Max Scaling (Rescaling)
@@ -1095,7 +994,8 @@ display_colored_message("MODELS SCORE AND CONFUSION MATRIX...")
 models = [
     ("Logistic Regression", LogisticRegression(max_iter=200)),
     ("Decision Tree", DecisionTreeClassifier()),
-    ("Random Forest", RandomForestClassifier()),
+    ("Random Forest", RandomForestClassifier(n_estimators=150,max_depth=17,
+                          min_samples_leaf=10,min_samples_split=9)),
     ("K Nearest Neighbors", KNeighborsClassifier(n_neighbors=5)),
     ("Naive Bayes GNB", GaussianNB()),
     ("SVM", SGDClassifier(loss='log', random_state=42)),
@@ -1420,7 +1320,7 @@ display_colored_sub_message("ORIGINAL TESTING DATASET...")
 print(colored(tabulate(testDf.head(2), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 testDf = testDf.drop(columns=['Loan_ID'])
 testDf = testDf.drop(columns=['SelfEmployed'])
-testDf = testDf.drop(columns=['Gender'])
+#testDf = testDf.drop(columns=['Gender'])
 
 #Missing Value
 # Gender column
