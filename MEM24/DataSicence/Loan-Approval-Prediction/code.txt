@@ -10,6 +10,8 @@ from IPython.display import display, HTML
 from io import StringIO
 from termcolor import colored # For colored text printing
 from tabulate import tabulate
+from scipy.stats import chi2_contingency
+from prettytable import PrettyTable
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
@@ -182,12 +184,6 @@ sns.heatmap(df.isnull(), cbar=True, cmap='inferno')
 plt.show()
 
 ####################################################
-display_colored_message("DROP COLUMNS...")
-# Drop columns
-columns_to_drop = ['Loan_ID']
-df.drop(columns_to_drop, axis=1, inplace=True)
-
-####################################################
 display_colored_message("FIND THE DUPLICATED ROWS...")
 #Find the duplicated rows
 print(df.duplicated().sum())
@@ -241,6 +237,8 @@ df['LoanAmountTerm'] = df['LoanAmountTerm'].fillna(df['LoanAmountTerm'].mode()[0
 # PropertyArea Column
 df['PropertyArea'] = df['PropertyArea'].fillna(df['PropertyArea'].mode()[0])
 
+print('Total missing values: ', df.isnull().sum().sum())
+
 ####################################################
 display_colored_message("DEALING WITH CATEGORICAL VALUES...")
 # Dealing with Categorical values
@@ -248,9 +246,45 @@ display_colored_message("DEALING WITH CATEGORICAL VALUES...")
 # Gender Column
 #df['Gender'] =  df['Gender'].map({'Male':0,'Female':1})
 le = LabelEncoder()
-df["Gender"] = le.fit_transform(df["Gender"])
-df["Married"] = le.fit_transform(df["Married"])
+#df["Gender"] = le.fit_transform(df["Gender"])
+#df["Married"] = le.fit_transform(df["Married"])
 df["Loan_Status"] = le.fit_transform(df["Loan_Status"])
+
+print(colored(tabulate(df.head(2), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+
+##############################################
+display_colored_message("\nchi2 CHECK...")
+
+# Filter columns with 'object' dtype
+categorical_columns = df.select_dtypes(include=['object']).columns
+display_colored_sub_message("\nNull Hypothesis: there is no relation between categorical variables and Loan_Status")
+
+chi2_check = []
+for i in categorical_columns:
+    if chi2_contingency(pd.crosstab(df['Loan_Status'], df[i]))[1] < 0.05:
+        chi2_check.append('Reject Null Hypothesis')
+    else:
+        chi2_check.append('Fail to Reject Null Hypothesis')
+
+
+res = pd.DataFrame({'Column': categorical_columns, 'Hypothesis': chi2_check})
+
+# Define a function to color the cells
+def color_hypothesis(val):
+    color = 'green' if val == 'Reject Null Hypothesis' else 'red'
+    return f'color: {color}'
+
+# Apply the coloring function to the Hypothesis column
+styled_res = res.style.applymap(color_hypothesis, subset=['Hypothesis'])
+
+# Display the styled DataFrame
+styled_res
+
+####################################################
+display_colored_message("DROP COLUMNS...")
+# Drop columns
+columns_to_drop = ['Loan_ID']
+df.drop(columns_to_drop, axis=1, inplace=True)
 
 ####################################################
 display_colored_message("DISPLAY CORRELATION...")
@@ -326,7 +360,26 @@ print("\nTotal number of unique rows with outliers: \n", totalUniqueOutliers)
 display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
 # Calculate the outliers percentag
 percentOutliers = totalUniqueOutliers / df.shape[0]
-print(f"Percentage of duplicated rows: {percentOutliers * 100:.2f}%")
+print(f"Percentage of outliers before treatment : {percentOutliers * 100:.2f}%")
+
+# Create figure and axis
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(aspect="equal"))
+
+# Data to plot
+sizes = [percentOutliers * 100, 100 - (percentOutliers * 100)]  # Scale to 100%
+colors = ['#66c2a5', 'Yellow']  # Custom colors
+
+# Create a pie chart
+wedges, texts = ax.pie(sizes, colors=colors, startangle=90, wedgeprops=dict(width=0.3))
+
+# Draw text in the center of the plot
+plt.text(0, 0, f'{percentOutliers * 100:.2f}%', horizontalalignment='center', verticalalignment='center', fontsize=20, weight='bold')
+
+# Add title
+plt.title('Percentage of outliers')
+
+# Show the plot
+plt.show()
 
 display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
 # Check if there are any duplicated rows and if the percentage is less than 5%
@@ -338,8 +391,8 @@ else:
 dfWinsorized = df.copy()
 
  # Winsorize the column 'ApplicantIncome', ApplicantIncome is the column with potential outliers,  2/1030
-#dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.083, 0.083))
-dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.014, 0.014))
+dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.083, 0.083))
+#dfWinsorized['ApplicantIncome_winsorized'] = winsorize(dfWinsorized['ApplicantIncome'], limits=(0.014, 0.014))
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
 sns.histplot(df['ApplicantIncome'], kde=True)
@@ -362,8 +415,8 @@ print('CoapplicantIncome perc < 10000' , percentilleApplicantIncome)
 print('CoapplicantIncome count < 10000' , count)
 
  # Winsorize the column 'CoapplicantIncome', CoapplicantIncome is the column with potential outliers
-#dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.031, 0.031))
-dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.01, 0.01))
+dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.031, 0.031))
+#dfWinsorized['CoapplicantIncome_winsorized'] = winsorize(dfWinsorized['CoapplicantIncome'], limits=(0.01, 0.01))
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
 sns.histplot(df['CoapplicantIncome'], kde=True)
@@ -405,7 +458,7 @@ print("\nTotal number of unique rows with outliers---: \n", totalUniqueOutliers)
 
 
 display_colored_sub_message("\n>>>>>>>>>>>>>> Calculate the outliers percentage")
-# Calculate the outliers percentag
+# Calculate the outliers percentage
 percentOutliers = totalUniqueOutliers / df.shape[0]
 print(f"Percentage of outliers: {percentOutliers * 100:.2f}%")
 
@@ -428,8 +481,6 @@ plt.title('Percentage of outliers')
 
 # Show the plot
 plt.show()
-
-
 
 
 display_colored_sub_message("\n>>>>>>>>>>>>>> Check if there are any duplicated rows and if the percentage is less than 5%")
@@ -955,7 +1006,7 @@ for col in object_columns:
     df[col] = le.fit_transform(df[col])
 
 
-print(colored(tabulate(df.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+print(colored(tabulate(df.head(1), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 
 ##############################################
 display_colored_message("SAVE PROCESSED CSV FILE ...")
@@ -964,10 +1015,12 @@ df.to_csv('/content/sample_data/loan_processed.csv', index=True)
 
 ##############################################
 display_colored_message("MODEL DATA SPLIT...")
+
 # Dropping multiple columns in a single call
-columns_to_drop = ['SelfEmployed', 'ApplicantIncome']
-#columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents']
+columns_to_drop = ['SelfEmployed', 'Gender']
+#columns_to_drop = ['SelfEmployed', 'Gender', 'Dependents']
 #columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents', 'Married', 'PropertyArea']
+
 df_train = df.copy()
 df_train = df_train.drop(columns=columns_to_drop)
 
@@ -1291,6 +1344,62 @@ plt.title('Parallel Coordinates Plot of Model Performance')
 plt.show()
 
 
+##############################################
+display_colored_message("MODEL TEST...")
+
+# Given DataFrame
+teamData = pd.DataFrame({
+    'Loan_ID': ['1', '2', '3'],
+    'Gender': ['1', '0', '1'],
+    'Married': ['1', '0', '0'],
+    'Dependents': ['2', '0', '0'],
+    'Education': ['1', '0', '1'],
+    'SelfEmployed': ['0', '0', '0'],
+    'ApplicantIncome': [4000, 10000, 3000],
+    'CoapplicantIncome': [2000.0, 0.0, 2000.0],
+    'LoanAmount': [100, 0.0, 66.0],
+    'LoanAmountTerm': [180, 180.0, 180.0],
+    'CreditHistory': [1, 1, 0],
+    'PropertyArea': ['0', '1', '0'],
+})
+
+print(colored(tabulate(teamData.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+teamData = teamData.drop(columns=['Loan_ID'])
+teamData = teamData.drop(columns=['SelfEmployed'])
+teamData = teamData.drop(columns=['Gender'])
+
+#df_train = df_train.drop(columns=['Loan_Status'])
+#print(colored(tabulate(df_train.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+
+scaler = MinMaxScaler()
+# Fit and transform the data
+scaled_team_data = scaler.fit_transform(teamData)
+
+print(scaled_team_data)
+
+# Assuming you have trained your models list previously
+
+#"Logistic Regression" "Decision Tree" "Random Forest" "K Nearest Neighbors" "Naive Bayes"
+#"SVM" "BernoulliNB" "MLPClassifier" "XG Boost"
+
+# Find Best model in the models list
+best_model = None
+for name, model in models:
+    if name == "MLPClassifier":
+        best_model = model
+        break
+
+# Check if best_model model is found
+if best_model is not None:
+    # Assuming you have your data for prediction stored in X_pred
+    # Make predictions using best_model model
+    predictions = best_model.predict(scaled_team_data)
+    # Now you have predictions using best_model model
+    print(predictions)
+else:
+    print("MLPClassifier model not found in the models list.")
+
+
 ####################################################
 display_colored_message("MODEL IMPORTANCE FEATURES...")
 #Model importance feature
@@ -1333,6 +1442,107 @@ for i in range(len(models)):
     name, model_instance = models[i]
     display_feature_importance(model_instance, name, feature_labels)
 
+
+# Given DataFrame
+teamData = pd.DataFrame({
+    'Loan_ID': ['1', '2', '3'],
+    'Gender': ['1', '0', '1'],
+    'Married': ['1', '0', '0'],
+    'Dependents': ['2', '0', '0'],
+    'Education': ['1', '0', '1'],
+    'SelfEmployed': ['0', '0', '0'],
+    'ApplicantIncome': [4000, 10000, 3000],
+    'CoapplicantIncome': [2000.0, 0.0, 2000.0],
+    'LoanAmount': [100, 0.0, 66.0],
+    'LoanAmountTerm': [180, 180.0, 180.0],
+    'CreditHistory': [1, 1, 0],
+    'PropertyArea': ['0', '1', '0'],
+})
+
+print(colored(tabulate(teamData.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+teamData = teamData.drop(columns=['Loan_ID'])
+teamData = teamData.drop(columns=['SelfEmployed'])
+#teamData = teamData.drop(columns=['ApplicantIncome'])
+
+#df_train = df_train.drop(columns=['Loan_Status'])
+#print(colored(tabulate(df_train.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+
+scaler = MinMaxScaler()
+# Fit and transform the data
+scaled_team_data = scaler.fit_transform(teamData)
+
+print(scaled_team_data)
+
+# Assuming you have trained your models list previously
+
+# Find BernoulliNB model in the models list
+bernoulli_nb_model = None
+for name, model in models:
+    if name == "BernoulliNB":
+        bernoulli_nb_model = model
+        break
+
+# Check if BernoulliNB model is found
+if bernoulli_nb_model is not None:
+    # Assuming you have your data for prediction stored in X_pred
+    # Make predictions using BernoulliNB model
+    predictions = bernoulli_nb_model.predict(scaled_team_data)
+    # Now you have predictions using BernoulliNB model
+    print(predictions)
+else:
+    print("BernoulliNB model not found in the models list.")
+
+##############################################
+display_colored_message("MODEL TEST...")
+
+# Given DataFrame
+teamData = pd.DataFrame({
+    'Loan_ID': ['1', '2', '3'],
+    'Gender': ['1', '0', '1'],
+    'Married': ['1', '0', '0'],
+    'Dependents': ['2', '0', '0'],
+    'Education': ['1', '0', '1'],
+    'SelfEmployed': ['0', '0', '0'],
+    'ApplicantIncome': [4000, 10000, 3000],
+    'CoapplicantIncome': [2000.0, 0.0, 2000.0],
+    'LoanAmount': [100, 0.0, 66.0],
+    'LoanAmountTerm': [180, 180.0, 180.0],
+    'CreditHistory': [1, 1, 0],
+    'PropertyArea': ['0', '1', '0'],
+})
+
+print(colored(tabulate(teamData.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+teamData = teamData.drop(columns=['Loan_ID'])
+teamData = teamData.drop(columns=['SelfEmployed'])
+teamData = teamData.drop(columns=['Gender'])
+
+#df_train = df_train.drop(columns=['Loan_Status'])
+#print(colored(tabulate(df_train.head(5), headers='keys', tablefmt='fancy_grid'), 'cyan'))
+
+scaler = MinMaxScaler()
+# Fit and transform the data
+scaled_team_data = scaler.fit_transform(teamData)
+
+print(scaled_team_data)
+
+# Assuming you have trained your models list previously
+
+# Find BernoulliNB model in the models list
+bernoulli_nb_model = None
+for name, model in models:
+    if name == "BernoulliNB":
+        bernoulli_nb_model = model
+        break
+
+# Check if BernoulliNB model is found
+if bernoulli_nb_model is not None:
+    # Assuming you have your data for prediction stored in X_pred
+    # Make predictions using BernoulliNB model
+    predictions = bernoulli_nb_model.predict(scaled_team_data)
+    # Now you have predictions using BernoulliNB model
+    print(predictions)
+else:
+    print("BernoulliNB model not found in the models list.")    
 
 #############################################################
 display_colored_message("DEEP LEARNING...")
@@ -1443,5 +1653,4 @@ roc_auc = roc_auc_score(y_test, y_pred)
 
 print(f'Best Deep Learning Model Accuracy: {accuracy * 100:.2f}%')
 print(f'Best Deep Learning Model AUC-ROC: {roc_auc:.2f}')
-
 
