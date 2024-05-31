@@ -111,12 +111,22 @@ print(df.columns)
 
 ####################################################
 display_colored_message("RENAME COLUMNS...")
-#Rename columuns Self_Employed, Credit_History, Loan_Amount_Term
-df = df.rename(columns={'Self_Employed' : 'SelfEmployed'})
-df = df.rename(columns={'Credit_History' : 'CreditHistory'})
-df = df.rename(columns={'Loan_Amount_Term' : 'LoanAmountTerm'})
-df = df.rename(columns={'Property_Area' : 'PropertyArea'})
 
+#Rename columuns Self_Employed, Credit_History, Loan_Amount_Term
+def rename_columns(df):
+    # Rename columns in a single call
+    df = df.rename(columns={
+        'Self_Employed': 'SelfEmployed',
+        'Credit_History': 'CreditHistory',
+        'Loan_Amount_Term': 'LoanAmountTerm',
+        'Property_Area': 'PropertyArea'
+    })
+    return df
+
+#RENAME COLUMNS
+df = rename_columns(df)
+
+print(df.columns)
 ####################################################
 display_colored_message("STATISTICAL SUMMARY OF THE DATASET...")
 # Statistical summary of dataset
@@ -974,12 +984,12 @@ X = X.drop('Loan_Status',axis=1) #Remove label
 
 # Rescale and normalize the features
 # Standardization (Normalization)
-#scaler = StandardScaler()
-#X_scaled = scaler.fit_transform(X)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
 # Min-Max Scaling (Rescaling)
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(X)
+#scaler = MinMaxScaler()
+#X_scaled = scaler.fit_transform(X)
 
 # Data Splitting
 
@@ -997,19 +1007,18 @@ print(colored(tabulate(pd.DataFrame(X_scaled).head(2), headers='keys', tablefmt=
 ##############################################
 display_colored_message("MODELS SCORE AND CONFUSION MATRIX...")
 
-
 # List of models to train
 models = [
-    ("Logistic Regression", LogisticRegression(max_iter=200)),
-    ("Decision Tree", DecisionTreeClassifier()),
-    ("Random Forest", RandomForestClassifier(n_estimators=150,max_depth=17,
+    ("LogisticRegression", LogisticRegression(max_iter=200)),
+    ("DecisionTree", DecisionTreeClassifier()),
+    ("RandomForest", RandomForestClassifier(n_estimators=150,max_depth=17,
                           min_samples_leaf=10,min_samples_split=9)),
-    ("K Nearest Neighbors", KNeighborsClassifier(n_neighbors=5)),
-    ("Naive Bayes GNB", GaussianNB()),
+    ("KNearestNeighbors", KNeighborsClassifier(n_neighbors=5)),
+    ("NaiveBayesGNB", GaussianNB()),
+    ("NaiveBayesBNB", BernoulliNB()),
     ("SVM", SGDClassifier(loss='log', random_state=42)),
-    ("Naive Bayes BNB", BernoulliNB()),
     ("MLPClassifier", MLPClassifier()),
-    ("XG Boost", XGBClassifier())
+    ("XGBoost", XGBClassifier())
 ]
 
 # Create a DataFrame to store the evaluation metrics for each model
@@ -1269,7 +1278,6 @@ plt.show()
 
 
 ##############################################
-##############################################
 display_colored_message("MODEL TEST...")
 
 # Given DataFrame
@@ -1290,31 +1298,28 @@ testingData = pd.DataFrame({
 
 
 path = '/content/sample_data/'
-testingData = pd.read_csv(path + 'loan_test.csv')
+testingData = pd.read_csv(path + 'loan_test.csv')   
 
 testDf = testingData.copy()
 
 display_colored_message("RENAME COLUMNS...")
-#Rename columuns Self_Employed, Credit_History, Loan_Amount_Term
-testDf = testDf.rename(columns={'Self_Employed' : 'SelfEmployed'})
-testDf = testDf.rename(columns={'Credit_History' : 'CreditHistory'})
-testDf = testDf.rename(columns={'Loan_Amount_Term' : 'LoanAmountTerm'})
-testDf = testDf.rename(columns={'Property_Area' : 'PropertyArea'})
-print(df.columns)
+
+#RENAME COLUMNS
+testDf = rename_columns(testDf)
+print(testDf.columns)
 
 display_colored_sub_message("ORIGINAL TESTING DATASET...")
 
 print(colored(tabulate(testDf.head(2), headers='keys', tablefmt='fancy_grid'), 'cyan'))
 
-#FILL MISSING VALUES
-data_prep_fill_mising_values(df)
-
 #REMOVE SAME COLUMNS
 print(ALL_DROPPED_COLUMNS)
 
+#FILL MISSING VALUES
+data_prep_fill_mising_values(testDf)
+
 #DROP SAME COLUMNS
 testDf.drop(ALL_DROPPED_COLUMNS, axis=1, inplace=True)
-
 
 display_colored_sub_message("TESTING DATASET NO MISSING  & DROP COLUMNS...")
 print(colored(tabulate(testDf.head(2), headers='keys', tablefmt='fancy_grid'), 'cyan'))
@@ -1340,10 +1345,11 @@ print(colored(tabulate(pd.DataFrame(scaled_team_data).head(2), headers='keys', t
 
 # Assuming you have trained your models list previously
 
-#"Logistic Regression" "Decision Tree" "Random Forest" "K Nearest Neighbors" "Naive Bayes GNB"
-#"SVM" "Naive Bayes BNB" "MLPClassifier" "XG Boost"
+#"LogisticRegression" "DecisionTree" "RandomForest" "K NearestNeighbors" "NaiveBayesGNB"
+#"SVM" "NaiveBayesBNB" "MLPClassifier" "XGBoost"
 
-MODEL_SELECTED = "Naive Bayes BNB"
+#MODEL_SELECTED = "NaiveBayesBNB"
+MODEL_SELECTED = "SVM"
 
 display_colored_sub_message(f"TESTING DATASET APPLY MODEL : {MODEL_SELECTED}...")
 
