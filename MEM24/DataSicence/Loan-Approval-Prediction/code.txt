@@ -976,12 +976,12 @@ X = X.drop('Loan_Status',axis=1) #Remove label
 
 # Rescale and normalize the features
 # Standardization (Normalization)
-#scaler = StandardScaler()
-#X_scaled = scaler.fit_transform(X)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
 # Min-Max Scaling (Rescaling)
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(X)
+#scaler = MinMaxScaler()
+#X_scaled = scaler.fit_transform(X)
 
 # Data Splitting
 
@@ -1167,7 +1167,6 @@ fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
 fig.show()
 
 
-
 # 3D scatter plot comparison between models
 fig = px.scatter_3d(
     metrics_df,
@@ -1291,7 +1290,7 @@ testingData = pd.DataFrame({
 
 
 path = '/content/sample_data/'
-testingData = pd.read_csv(path + 'loan_test.csv')   
+testingData = pd.read_csv(path + 'loan_test.csv')
 
 testDf = testingData.copy()
 
@@ -1338,11 +1337,29 @@ print(colored(tabulate(pd.DataFrame(scaled_team_data).head(2), headers='keys', t
 
 # Assuming you have trained your models list previously
 
-#"LogisticRegression" "DecisionTree" "RandomForest" "K NearestNeighbors" "NaiveBayesGNB"
-#"SVM" "NaiveBayesBNB" "MLPClassifier" "XGBoost"
+def DYNAMIC_SELECTION_BEST_MODEL(model_metrics):
+  # Select all models that have the max value in 'Accuracy'
+  max_Accuracy_models = model_metrics[model_metrics['Accuracy'] == model_metrics['Accuracy'].max()]
 
-#MODEL_SELECTED = "SVM"
-MODEL_SELECTED = "RandomForest"
+  # From those, select the model(s) that have the max value in 'Precision'
+  max_precision_models = max_Accuracy_models[max_Accuracy_models['Precision'] == max_Accuracy_models['Precision'].max()]
+
+  # Calculate the sum of 'Accuracy', 'Precision', 'Recall', and 'F1-score' for each row
+  max_precision_models['TOTAL_MODEL_SCORE'] = max_precision_models[['Accuracy', 'Precision', 'Recall', 'F1-score']].sum(axis=1)
+
+  max_total_score_row = max_precision_models.loc[max_precision_models['TOTAL_MODEL_SCORE'].idxmax()]
+  return max_total_score_row['Model']
+
+SELECTION_MODEL_TYPE = 'DYNAMIC_SELECTION_MODEL'
+#SELECTION_MODEL_TYPE = 'MANUAL_SELECTION_MODEL'
+
+display_colored_title_message(f"SELECTION_MODEL_TYPE : {SELECTION_MODEL_TYPE}...")
+
+if SELECTION_MODEL_TYPE == 'DYNAMIC_SELECTION_MODEL':
+  MODEL_SELECTED = DYNAMIC_SELECTION_BEST_MODEL(model_metrics)
+else:
+  #"LogisticRegression" "DecisionTree" "RandomForest" "K NearestNeighbors" "NaiveBayesGNB" "SVM" "NaiveBayesBNB" "MLPClassifier" "XGBoost"
+  MODEL_SELECTED = "LogisticRegression"
 
 display_colored_sub_message(f"TESTING DATASET APPLY MODEL : {MODEL_SELECTED}...")
 
@@ -1360,7 +1377,7 @@ if best_model is not None:
     predictions = best_model.predict(scaled_team_data)
     # Now you have predictions using best_model model
     #print(f"{MODEL_SELECTED} prediction:", predictions)
-    
+
     # Define a mapping dictionary
     #mapping = {1: 'Y', 0: 'N'}
 
@@ -1388,7 +1405,6 @@ testingData['Gender'].value_counts()
 plt.figure(figsize=(8,3))
 sns.countplot(x = 'Gender',hue ='Loan_Status', data=testingData , palette='hls')
 plt.show()
-
 
 ####################################################
 display_colored_message("MODEL IMPORTANCE FEATURES...")
