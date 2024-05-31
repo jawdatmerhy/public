@@ -233,22 +233,24 @@ plt.xlabel("COLUMNS")
 plt.show()
 
 #Missing Value
-# Gender column
-df['Gender'] = df['Gender'].fillna(df['Gender'].mode()[0])
-# Married column
-df['Married'] = df['Married'].fillna(df['Married'].mode()[0])
-# Dependents Column
-df['Dependents'] = df['Dependents'].fillna(df['Dependents'].mode()[0])
-# Self_Employed Column
-df['SelfEmployed'].fillna('No',inplace=True)
-# Credit_History Column
-df['CreditHistory'] = df['CreditHistory'].fillna(df['CreditHistory'].mode()[0])
-# LoanAmount Column
-df['LoanAmount'] = df['LoanAmount'].fillna(df['LoanAmount'].median())
-# Loan_Amount Column
-df['LoanAmountTerm'] = df['LoanAmountTerm'].fillna(df['LoanAmountTerm'].mode()[0])
-# PropertyArea Column
-df['PropertyArea'] = df['PropertyArea'].fillna(df['PropertyArea'].mode()[0])
+def data_prep_fill_mising_values(data):
+  # Gender column
+  data['Gender'] = data['Gender'].fillna(data['Gender'].mode()[0])
+  # Married column
+  data['Married'] = data['Married'].fillna(data['Married'].mode()[0])
+  # Dependents Column
+  data['Dependents'] = data['Dependents'].fillna(data['Dependents'].mode()[0])
+  # Self_Employed Column
+  #data['SelfEmployed'].fillna('No',inplace=True)
+  data['SelfEmployed'] = data['SelfEmployed'].fillna(data['SelfEmployed'].mode()[0])
+  # Credit_History Column
+  data['CreditHistory'] = data['CreditHistory'].fillna(data['CreditHistory'].mode()[0])
+  # LoanAmountTerm Column
+  data['LoanAmountTerm'] = data['LoanAmountTerm'].fillna(data['LoanAmountTerm'].mode()[0])
+  # LoanAmount Column
+  data['LoanAmount'] = data['LoanAmount'].fillna(data['LoanAmount'].median())
+
+data_prep_fill_mising_values(df)
 
 print('Total missing values After fillna : ', df.isnull().sum().sum())
 
@@ -298,6 +300,10 @@ display_colored_message("DROP COLUMNS...")
 # Drop columns
 columns_to_drop = ['Loan_ID']
 df.drop(columns_to_drop, axis=1, inplace=True)
+
+
+#TO BE USED FOR REMOVE ALL DROPPED COLUMNS IN TESTING
+ALL_DROPPED_COLUMNS = columns_to_drop;
 
 ####################################################
 display_colored_message("DISPLAY CORRELATION...")
@@ -517,14 +523,14 @@ plt.show()
 display_colored_message("3D SCATTER PLOT OF LOAN DATA...")
 
 plt.figure(figsize=(15, 10))
-fig = px.scatter_3d(df, 
-                    x='ApplicantIncome', 
-                    y='CoapplicantIncome', 
+fig = px.scatter_3d(df,
+                    x='ApplicantIncome',
+                    y='CoapplicantIncome',
                     z='LoanAmount',
-                    color='Loan_Status', 
-                    size='CreditHistory', 
+                    color='Loan_Status',
+                    size='CreditHistory',
                     size_max=18,
-                    symbol='Gender', 
+                    symbol='Gender',
                     opacity=0.7,
                     title='3D Scatter Plot of Loan Data',
                     labels={
@@ -549,14 +555,14 @@ fig.show()
 display_colored_message("3D SCATTER PLOT OF LOAN DATA BY LOAN STATUS AND GENDER...")
 
 plt.figure(figsize=(15, 10))
-fig = px.scatter_3d(df, 
-                    x='LoanAmount', 
-                    y='ApplicantIncome', 
+fig = px.scatter_3d(df,
+                    x='LoanAmount',
+                    y='ApplicantIncome',
                     z='LoanAmountTerm',
-                    color='Loan_Status', 
-                    size='CreditHistory', 
+                    color='Loan_Status',
+                    size='CreditHistory',
                     size_max=18,
-                    symbol='Gender', 
+                    symbol='Gender',
                     opacity=0.7,
                     title='3D Scatter Plot of Loan Data by Loan Status and Gender',
                     labels={
@@ -594,21 +600,21 @@ def single_plot_distribution(column_name, dataframe, title):
     value_counts = dataframe[column_name].value_counts()
 
     # Set up the figure with two subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6), facecolor='black') 
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6), facecolor='black')
 
     # Set main title for the figure
     fig.suptitle(title)
 
     # Pie chart
     #pie_colors = ['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
-    pie_colors = ['#0077b6', '#ff4500', '#90e0ef', '#caf0f8'] 
+    pie_colors = ['#0077b6', '#ff4500', '#90e0ef', '#caf0f8']
     ax1.pie(value_counts, autopct='%0.001f%%', startangle=100, textprops={'fontsize': 20}, pctdistance=0.75, colors=pie_colors, labels=None)
     centre_circle = plt.Circle((0,0),0.40,fc='black')
     ax1.add_artist(centre_circle)
     ax1.set_title(f'Distribution of {column_name}', fontsize=16, color='white')
 
     # Bar chart
-    sns.barplot(x=value_counts.index, y=value_counts.values, ax=ax2, palette=pie_colors) 
+    sns.barplot(x=value_counts.index, y=value_counts.values, ax=ax2, palette=pie_colors)
     ax2.set_title(f'Count of {column_name}', fontsize=16, color='white')
     ax2.set_xlabel(column_name, fontsize=14, color='white')
     ax2.set_ylabel('Count', fontsize=14, color='white')
@@ -625,9 +631,9 @@ def single_plot_distribution(column_name, dataframe, title):
     plt.tight_layout()
     plt.show()
 
- 
+
 # Plot the distribution of SelfEmployed in the dataset
-single_plot_distribution('SelfEmployed', df, 'SelfEmployed Distribution')   
+single_plot_distribution('SelfEmployed', df, 'SelfEmployed Distribution')
 
 
 ####################################################
@@ -946,6 +952,12 @@ display_colored_message("MODEL DATA SPLIT..")
 columns_to_drop = ['SelfEmployed']
 #columns_to_drop = ['SelfEmployed', 'Gender', 'Education', 'Dependents', 'Married', 'PropertyArea']
 
+# Extend ALL_DROPPED_COLUMNS with elements of columns_to_drop if they do not already exist
+for column in columns_to_drop:
+    if column not in ALL_DROPPED_COLUMNS:
+        ALL_DROPPED_COLUMNS.append(column)
+
+
 df_train = df.copy()
 df_train = df_train.drop(columns=columns_to_drop)
 
@@ -954,10 +966,6 @@ X = df_train
 y = df_train.Loan_Status
 
 X = X.drop('Loan_Status',axis=1) #Remove label
-
-#X = df[['Gender', 'Married', 'Dependents', 'Education',
- #                          'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount',
- #        'LoanAmountTerm', 'PropertyArea', 'CreditHistory']]
 
 
 #SMOTE for imbalenced Dat
@@ -1048,27 +1056,6 @@ for i, (name, model) in enumerate(models):
 
     evaluate_model(model, name, X_test, y_test)
 
-
-    # Compute learning curve
-    #train_sizes, train_scores, test_scores = learning_curve(model, X_train, y_train, cv=5)
-
-    # Compute average train and test scores
-    #avg_train_scores = np.mean(train_scores, axis=1)
-    #avg_test_scores = np.mean(test_scores, axis=1)
-
-    # Convert to lists to make them hashable
-   # avg_train_scores = avg_train_scores.tolist()
-    #avg_test_scores = avg_test_scores.tolist()
-
-   # plt.figure(figsize=(10, 6))
-    ##plt.plot(train_sizes, avg_train_scores, label='Training Score')
-    #plt.plot(train_sizes, avg_test_scores, label='Validation Score')
-    #plt.xlabel('Training Set Size')
-   # plt.ylabel('Accuracy')
-    #plt.title(f'Learning Curve for {name}')
-    #plt.legend()
-   # plt.grid(True)
-   # plt.show()
 
 plt.tight_layout()
 plt.show()
@@ -1303,7 +1290,7 @@ testingData = pd.DataFrame({
 
 
 path = '/content/sample_data/'
-testingData = pd.read_csv(path + 'loan_test.csv')   
+testingData = pd.read_csv(path + 'loan_test.csv')
 
 testDf = testingData.copy()
 
@@ -1318,27 +1305,15 @@ print(df.columns)
 display_colored_sub_message("ORIGINAL TESTING DATASET...")
 
 print(colored(tabulate(testDf.head(2), headers='keys', tablefmt='fancy_grid'), 'cyan'))
-testDf = testDf.drop(columns=['Loan_ID'])
-testDf = testDf.drop(columns=['SelfEmployed'])
-#testDf = testDf.drop(columns=['Gender'])
 
-#Missing Value
-# Gender column
-#testDf['Gender'] = testDf['Gender'].fillna(testDf['Gender'].mode()[0])
-# Married column
-testDf['Married'] = testDf['Married'].fillna(testDf['Married'].mode()[0])
-# Dependents Column
-testDf['Dependents'] = testDf['Dependents'].fillna(testDf['Dependents'].mode()[0])
-# Self_Employed Column
-#df['SelfEmployed'].fillna('No',inplace=True)
-# Credit_History Column
-testDf['CreditHistory'] = testDf['CreditHistory'].fillna(testDf['CreditHistory'].mode()[0])
-# LoanAmount Column
-testDf['LoanAmount'] = testDf['LoanAmount'].fillna(testDf['LoanAmount'].median())
-# Loan_Amount Column
-testDf['LoanAmountTerm'] = testDf['LoanAmountTerm'].fillna(testDf['LoanAmountTerm'].mode()[0])
-# PropertyArea Column
-testDf['PropertyArea'] = testDf['PropertyArea'].fillna(testDf['PropertyArea'].mode()[0])
+#FILL MISSING VALUES
+data_prep_fill_mising_values(df)
+
+#REMOVE SAME COLUMNS
+print(ALL_DROPPED_COLUMNS)
+
+#DROP SAME COLUMNS
+testDf.drop(ALL_DROPPED_COLUMNS, axis=1, inplace=True)
 
 
 display_colored_sub_message("TESTING DATASET NO MISSING  & DROP COLUMNS...")
@@ -1453,7 +1428,7 @@ for i in range(len(models)):
     display_feature_importance(model_instance, name, feature_labels)
 
 
- 
+
 
 #############################################################
 display_colored_message("DEEP LEARNING...")
