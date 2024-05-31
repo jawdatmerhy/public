@@ -58,6 +58,9 @@ def display_colored_message(message, color='black', background='orange'):
 def display_colored_sub_message(message):
     print("\033[1;33;44m" + message + "\033[0m")
 
+def display_colored_title_message(message):
+    print(f"\033[1m\033[34m{'='*40}\n" + message)
+    print(f"{'='*40}\033[0m")
 
 display_colored_message("THE REQUIRED LIBRARIES WERE SUCCESSFULLY IMPORTED...")
 
@@ -379,7 +382,7 @@ winsorize_column(df_winsorized, 'ApplicantIncome', 0.0001, 0.084)
 winsorize_column(df_winsorized, 'CoapplicantIncome', 0.0001, 0.031)
 
 # Winsorize the column 'LoanAmount', LoanAmount is the column with potential outliers ~ 41/614 = 0.067
-winsorize_column(df_winsorized, 'LoanAmount', 0.0001, 0.085)
+winsorize_column(df_winsorized, 'LoanAmount', 0.0001, 0.086)
 
 df[columns_to_check] = df_winsorized[columns_to_check]
 
@@ -1039,8 +1042,9 @@ for i, (name, model) in enumerate(models):
     scoreTrain = model.score(X_train, y_train)
     scoreTest = model.score(X_test, y_test)
 
+    display_colored_title_message(f'{name} Model')
+
     # Print model header with color
-    print(colored(f"\n{'='*40}\n{name} Model\n{'='*40}", 'blue'))
     print(colored(f"Train Accuracy: {scoreTrain:.3f}", 'green'))
     print(colored(f"Test Accuracy: {scoreTest:.3f}\n", 'green'))
 
@@ -1338,7 +1342,7 @@ print(colored(tabulate(pd.DataFrame(scaled_team_data).head(2), headers='keys', t
 #"SVM" "NaiveBayesBNB" "MLPClassifier" "XGBoost"
 
 #MODEL_SELECTED = "SVM"
-MODEL_SELECTED = "NaiveBayesBNB"
+MODEL_SELECTED = "RandomForest"
 
 display_colored_sub_message(f"TESTING DATASET APPLY MODEL : {MODEL_SELECTED}...")
 
@@ -1388,11 +1392,6 @@ plt.show()
 
 ####################################################
 display_colored_message("MODEL IMPORTANCE FEATURES...")
-#Model importance feature
-
-#feature_labels = np.array(['Gender', 'Married', 'Dependents', 'Education', 'SelfEmployed',
-#                           'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount',
-#         'LoanAmountTerm', 'PropertyArea', 'CreditHistory'])
 
 # Get feature labels from DataFrame columns (excluding the last column)
 feature_labels = df_train.columns[:-1].values
@@ -1406,21 +1405,23 @@ def display_feature_importance(model, model_name, feature_labels):
     else:
         importance = []
 
-    print(f"\033[1m\033[34m{'='*40}\nFeature importance for {model_name}:\n{'='*40}\033[0m")
-    # Creating a series for feature importances
-    feat_importances = pd.Series(importance, index=feature_labels)
-    feat_importances.nlargest(12).plot(kind='barh')
-    plt.title(f"Feature Importance for {model_name}")
-    plt.show()
+    if len(importance) != 0:
+      # Creating a series for feature importances
+      feat_importances = pd.Series(importance, index=feature_labels)
+      feat_importances.nlargest(12).plot(kind='barh')
+      plt.title(f"Feature Importance for {model_name}")
+      plt.show()
 
-    feature_indexes_by_importance = importance.argsort()
-    print(f"\033[1m\033[34m{'='*40}\nFeature importance for {model_name}:\n{'='*40}\033[0m")
-    for index in feature_indexes_by_importance:
-        importance_percentage = importance[index] * 100.0
-        feature_name = feature_labels[index]
-        color_code = '\033[32m' if importance_percentage > 10 else '\033[33m' if importance_percentage > 5 else '\033[0m'
-        print(f"{color_code}{feature_name}: {importance_percentage:.2f}%\033[0m")
-    print()
+      feature_indexes_by_importance = importance.argsort()
+
+      display_colored_title_message('Feature importance for {model_name}:')
+      for index in feature_indexes_by_importance:
+          importance_percentage = importance[index] * 100.0
+          feature_name = feature_labels[index]
+          color_code = '\033[32m' if importance_percentage > 10 else '\033[33m' if importance_percentage > 5 else '\033[0m'
+          print(f"{color_code}{feature_name}: {importance_percentage:.2f}%\033[0m")
+    else:
+       print("Thre is no Feature importance")
 
 
 # Display feature importance for applicable models
@@ -1428,10 +1429,7 @@ for i in range(len(models)):
     name, model_instance = models[i]
     display_feature_importance(model_instance, name, feature_labels)
 
-
-
-
-#############################################################
+####################################################
 display_colored_message("DEEP LEARNING...")
 
 import tensorflow as tf
@@ -1439,30 +1437,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-
-print("Deep learning");
-
-# Build the model
-model = Sequential()
-model.add(Dense(64, input_dim=X_train.shape[1], activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(32, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(1, activation='sigmoid'))
-
-# Compile the model
-model.compile(optimizer=Adam(learning_rate=0.001), loss='binary_crossentropy', metrics=['accuracy'])
-
-# Train the model
-history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
-
-# Evaluate the model
-loss, accuracy = model.evaluate(X_test, y_test)
-print(f'Test Accuracy: {accuracy*100:.2f}%')
-
-# Calculate class weights to handle imbalanced data
-class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
-class_weights_dict = dict(enumerate(class_weights))
 
 
 # Enhanced deep learning model
@@ -1485,9 +1459,12 @@ model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accurac
 # Early stopping to prevent overfitting
 early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
-# Training the model
-history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2,
-                    class_weight=class_weights_dict, callbacks=[early_stopping])
+# Train the model
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+
+# Evaluate the model
+loss, accuracy = model.evaluate(X_test, y_test)
+print(f'Test Accuracy: {accuracy*100:.2f}%')
 
 # Evaluate the model
 loss, accuracy = model.evaluate(X_test, y_test)
@@ -1498,44 +1475,4 @@ print(f'Deep Learning Model Accuracy: {accuracy * 100:.2f}%')
 print(f'Deep Learning Model AUC-ROC: {roc_auc:.2f}')
 
 
-
-from kerastuner.tuners import RandomSearch
-
-def build_model(hp):
-    model = Sequential()
-    model.add(Dense(units=hp.Int('units_1', min_value=32, max_value=512, step=32), activation='relu', input_dim=X_train.shape[1]))
-    model.add(Dropout(hp.Float('dropout_1', 0.2, 0.5, step=0.1)))
-    model.add(Dense(units=hp.Int('units_2', min_value=32, max_value=512, step=32), activation='relu'))
-    model.add(Dropout(hp.Float('dropout_2', 0.2, 0.5, step=0.1)))
-    model.add(Dense(1, activation='sigmoid'))
-    model.compile(optimizer=Adam(learning_rate=hp.Float('lr', 1e-4, 1e-2, sampling='log')),
-                  loss='binary_crossentropy', metrics=['accuracy'])
-    return model
-
-tuner = RandomSearch(
-    build_model,
-    objective='val_accuracy',
-    max_trials=10,
-    executions_per_trial=3,
-    directory='my_dir',
-    project_name='loan_approval'
-)
-
-tuner.search(X_train, y_train, epochs=50, validation_split=0.2, callbacks=[early_stopping])
-
-# Get the optimal hyperparameters
-best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-print(f"Best hyperparameters: {best_hps.values}")
-
-# Train the best model
-best_model = tuner.hypermodel.build(best_hps)
-history = best_model.fit(X_train, y_train, epochs=50, validation_split=0.2, callbacks=[early_stopping])
-
-# Evaluate the best model
-loss, accuracy = best_model.evaluate(X_test, y_test)
-y_pred = best_model.predict(X_test).flatten()
-roc_auc = roc_auc_score(y_test, y_pred)
-
-print(f'Best Deep Learning Model Accuracy: {accuracy * 100:.2f}%')
-print(f'Best Deep Learning Model AUC-ROC: {roc_auc:.2f}')
 
