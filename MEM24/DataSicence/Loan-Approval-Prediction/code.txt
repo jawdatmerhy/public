@@ -264,74 +264,6 @@ data_prep_fill_mising_values(df)
 
 print('Total missing values After fillna : ', df.isnull().sum().sum())
 
-####################################################
-display_colored_message("\nDEALING WITH CATEGORICAL VALUES...")
-# Dealing with Categorical values
-
-# Gender Column
-#df['Gender'] =  df['Gender'].map({'Male':0,'Female':1})
-le = LabelEncoder()
-#df["Gender"] = le.fit_transform(df["Gender"])
-#df["Married"] = le.fit_transform(df["Married"])
-df["Loan_Status"] = le.fit_transform(df["Loan_Status"])
-
-print(colored(tabulate(df.head(2), headers='keys', tablefmt='fancy_grid'), 'cyan'))
-
-##############################################
-display_colored_message("\nchi2 CHECK...")
-
-# Filter columns with 'object' dtype
-categorical_columns = df.select_dtypes(include=['object']).columns
-display_colored_sub_message("\nNull Hypothesis: there is no relation between categorical variables and Loan_Status")
-
-chi2_check = []
-for i in categorical_columns:
-    if chi2_contingency(pd.crosstab(df['Loan_Status'], df[i]))[1] < 0.05:
-        chi2_check.append('Reject Null Hypothesis')
-    else:
-        chi2_check.append('Fail to Reject Null Hypothesis')
-
-
-res = pd.DataFrame({'Column': categorical_columns, 'Hypothesis': chi2_check})
-
-# Define a function to color the cells
-def color_hypothesis(val):
-    color = 'green' if val == 'Reject Null Hypothesis' else 'red'
-    return f'color: {color}'
-
-# Apply the coloring function to the Hypothesis column
-styled_res = res.style.applymap(color_hypothesis, subset=['Hypothesis'])
-
-# Display the styled DataFrame
-styled_res
-
-####################################################
-display_colored_message("DROP COLUMNS...")
-# Drop columns
-columns_to_drop = ['Loan_ID']
-df.drop(columns_to_drop, axis=1, inplace=True)
-
-
-#TO BE USED FOR REMOVE ALL DROPPED COLUMNS IN TESTING
-ALL_DROPPED_COLUMNS = columns_to_drop;
-
-####################################################
-display_colored_message("DISPLAY CORRELATION...")
-dfCopy = df.copy()
-# Filter columns with 'object' dtype
-object_columns = dfCopy.select_dtypes(include=['object']).columns
-
-# Initialize LabelEncoder
-le = LabelEncoder()
-
-# Apply LabelEncoder to 'object' columns
-for col in object_columns:
-    dfCopy[col] = le.fit_transform(dfCopy[col])
-
-plt.figure(figsize=(10,8))
-sns.heatmap(dfCopy.corr(),annot=True,cmap="viridis")
-plt.show()
-
 
 ###################################################
 display_colored_message("BOX PLOT DATASET...")
@@ -471,10 +403,67 @@ plot_stripplot(df, columns_to_check)
 
 plot_boxplots(df, columns_to_check)
 
+
+##############################################
+display_colored_message("\nchi2 CHECK...")
+
+# Filter columns with 'object' dtype
+categorical_columns = df.select_dtypes(include=['object']).columns
+display_colored_sub_message("\nNull Hypothesis: there is no relation between categorical variables and Loan_Status")
+
+chi2_check = []
+for i in categorical_columns:
+    if chi2_contingency(pd.crosstab(df['Loan_Status'], df[i]))[1] < 0.05:
+        chi2_check.append('Reject Null Hypothesis')
+    else:
+        chi2_check.append('Fail to Reject Null Hypothesis')
+
+
+res = pd.DataFrame({'Column': categorical_columns, 'Hypothesis': chi2_check})
+
+# Define a function to color the cells
+def color_hypothesis(val):
+    color = 'green' if val == 'Reject Null Hypothesis' else 'red'
+    return f'color: {color}'
+
+# Apply the coloring function to the Hypothesis column
+styled_res = res.style.applymap(color_hypothesis, subset=['Hypothesis'])
+
+# Display the styled DataFrame
+styled_res
+
+####################################################
+display_colored_message("DISPLAY CORRELATION...")
+dfCopy = df.copy()
+# Filter columns with 'object' dtype
+object_columns = dfCopy.select_dtypes(include=['object']).columns
+
+# Initialize LabelEncoder
+le = LabelEncoder()
+
+# Apply LabelEncoder to 'object' columns
+for col in object_columns:
+    dfCopy[col] = le.fit_transform(dfCopy[col])
+
+plt.figure(figsize=(10,8))
+sns.heatmap(dfCopy.corr(),annot=True,cmap="viridis")
+plt.show()
+
+
+####################################################
+display_colored_message("DROP COLUMNS...")
+# Drop columns
+columns_to_drop = ['Loan_ID']
+df.drop(columns_to_drop, axis=1, inplace=True)
+
+
+#TO BE USED FOR REMOVE ALL DROPPED COLUMNS IN TESTING
+ALL_DROPPED_COLUMNS = columns_to_drop;
+
+
 ####################################################
 display_colored_message("DATA VISULAZATION...")
 
-####################################################
 # Counting the accurance of each value in Gender column
 df['Gender'].value_counts()
 
@@ -791,17 +780,17 @@ for index, row in df.iterrows():
         df.at[index, 'Dependents'] = mode_dependents[row['Loan_Status']]
 
 # Group by dependents the employees who got a loan
-loan_yes_counts = df[df["Loan_Status"] == 1].groupby("Dependents").size().tolist()
+loan_yes_counts = df[df["Loan_Status"] == 'Y'].groupby("Dependents").size().tolist()
 
 # Group by dependents the employees who didn't get a loan
-loan_no_counts = df[df["Loan_Status"] == 0].groupby("Dependents").size().tolist()
+loan_no_counts = df[df["Loan_Status"] == 'N'].groupby("Dependents").size().tolist()
 
 
 # Group by dependents the employees who got a loan
-loan_yes_counts = df[df["Loan_Status"] == 1].groupby("Dependents").size()
+loan_yes_counts = df[df["Loan_Status"] == 'Y'].groupby("Dependents").size()
 
 # Group by dependents the employees who didn't get a loan
-loan_no_counts = df[df["Loan_Status"] == 0].groupby("Dependents").size()
+loan_no_counts = df[df["Loan_Status"] == 'N'].groupby("Dependents").size()
 
 # Data for the outer pie chart (distribution of loan status by dependents)
 labels_dependents = ["Zero", "One", "Two", "Three+", "Zero", "One", "Two", "Three+"]
@@ -984,12 +973,12 @@ X = X.drop('Loan_Status',axis=1) #Remove label
 
 # Rescale and normalize the features
 # Standardization (Normalization)
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+#scaler = StandardScaler()
+#X_scaled = scaler.fit_transform(X)
 
 # Min-Max Scaling (Rescaling)
-#scaler = MinMaxScaler()
-#X_scaled = scaler.fit_transform(X)
+scaler = MinMaxScaler()
+X_scaled = scaler.fit_transform(X)
 
 # Data Splitting
 
@@ -1348,8 +1337,8 @@ print(colored(tabulate(pd.DataFrame(scaled_team_data).head(2), headers='keys', t
 #"LogisticRegression" "DecisionTree" "RandomForest" "K NearestNeighbors" "NaiveBayesGNB"
 #"SVM" "NaiveBayesBNB" "MLPClassifier" "XGBoost"
 
-#MODEL_SELECTED = "NaiveBayesBNB"
-MODEL_SELECTED = "SVM"
+#MODEL_SELECTED = "SVM"
+MODEL_SELECTED = "NaiveBayesBNB"
 
 display_colored_sub_message(f"TESTING DATASET APPLY MODEL : {MODEL_SELECTED}...")
 
@@ -1367,8 +1356,14 @@ if best_model is not None:
     predictions = best_model.predict(scaled_team_data)
     # Now you have predictions using best_model model
     #print(f"{MODEL_SELECTED} prediction:", predictions)
+    
+    # Define a mapping dictionary
+    #mapping = {1: 'Y', 0: 'N'}
 
-    testingData['Loan_Status'] = predictions
+    # Assuming predictions is a NumPy array or a Pandas Series
+    predictions_categorical = ['Y' if pred == 1 else 'N' for pred in predictions]
+
+    testingData['Loan_Status'] = predictions_categorical
 else:
     print(f"{MODEL_SELECTED} model not found in the models list.")
 
@@ -1464,8 +1459,6 @@ history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split
 # Evaluate the model
 loss, accuracy = model.evaluate(X_test, y_test)
 print(f'Test Accuracy: {accuracy*100:.2f}%')
-
-
 
 # Calculate class weights to handle imbalanced data
 class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
