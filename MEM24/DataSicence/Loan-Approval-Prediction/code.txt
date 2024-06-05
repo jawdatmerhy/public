@@ -717,16 +717,16 @@ sns.set_context("paper", font_scale=1.1)
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
 # Plot 1: Distribution of Loan Amount Term by Loan Approval
-sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[0])
-sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[0])
+sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 'N'], color="Red", shade=True, ax=axes[0])
+sns.kdeplot(df.LoanAmountTerm[df["Loan_Status"] == 'Y'], color="Blue", shade=True, ax=axes[0])
 axes[0].legend(["No Loan", "Loan"], loc='upper right')
 axes[0].set_ylabel('Density')
 axes[0].set_xlabel('Loan Amount Term')
 axes[0].set_title('Distribution of Loan Amount Term by Loan Approval')
 
 # Plot 2: Distribution of Loan Amount by Loan Approval
-sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 0], color="Red", shade=True, ax=axes[1])
-sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 1], color="Blue", shade=True, ax=axes[1])
+sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 'N'], color="Red", shade=True, ax=axes[1])
+sns.kdeplot(df.LoanAmount[df["Loan_Status"] == 'Y'], color="Blue", shade=True, ax=axes[1])
 axes[1].legend(["No Loan", "Loan"], loc='upper right')
 axes[1].set_ylabel('Density')
 axes[1].set_xlabel('Loan Amount')
@@ -974,14 +974,25 @@ X = X.drop('Loan_Status',axis=1) #Remove label
 #smote=SMOTE()
 #X,y=smote.fit_resample(X,y)
 
-# Rescale and normalize the features
-# Standardization (Normalization)
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+# Example usage:
+scaler_type = "STANDARD_SCALER"  # Change to "MINMAX_SCALER" for Min-Max Scaling
 
-# Min-Max Scaling (Rescaling)
-#scaler = MinMaxScaler()
-#X_scaled = scaler.fit_transform(X)
+#Get the scaler
+def get_scaler(scaler_type):
+    if scaler_type == "STANDARD_SCALER":
+        # Rescale and normalize the features
+        # Standardization (Normalization)
+        return StandardScaler()
+    elif scaler_type == "MINMAX_SCALER":
+        # Min-Max Scaling (Rescaling) 
+        return MinMaxScaler()
+    else:
+        return None
+
+
+scaler = get_scaler(scaler_type)
+
+X_scaled = scaler.fit_transform(X)
 
 # Data Splitting
 
@@ -1013,261 +1024,287 @@ models = [
     ("XGBoost", XGBClassifier())
 ]
 
-# Create a DataFrame to store the evaluation metrics for each model
-model_metrics = pd.DataFrame(columns=['Model', 'Accuracy', 'Precision', 'Recall', 'F1-score'])
 
-# Function to calculate evaluation metrics and add them to the DataFrame
-def evaluate_model(model, model_name, X_test, y_test):
-    # Predict labels
-    y_pred = model.predict(X_test)
+#New fucntion evaluate_confusionMatric_and_plot_models
+def evaluate_confusionMatric_and_plot_models(models, X_train, X_test, y_train, y_test):
 
-    # Calculate evaluation metrics
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+    # Create a DataFrame to store the evaluation metrics for each model
+    model_metrics = pd.DataFrame(columns=['Model', 'Accuracy', 'Precision', 'Recall', 'F1-score'])
 
-    # Add metrics to the DataFrame
-    model_metrics.loc[len(model_metrics)] = [model_name, accuracy, precision, recall, f1]
+    # Function to calculate evaluation metrics and add them to the DataFrame
+    def evaluate_model(model, model_name, X_test, y_test):
+        # Predict labels
+        y_pred = model.predict(X_test)
 
-# Train and evaluate models
-fig, axes = plt.subplots(3, 3, figsize=(18, 15))
-axes = axes.ravel()
+        # Calculate evaluation metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
 
-# Train each model and plot confusion matrix
-for i, (name, model) in enumerate(models):
-    model.fit(X_train, y_train)
-    predicted_y = model.predict(X_test)
+        # Add metrics to the DataFrame
+        model_metrics.loc[len(model_metrics)] = [model_name, accuracy, precision, recall, f1]
 
-    scoreTrain = model.score(X_train, y_train)
-    scoreTest = model.score(X_test, y_test)
+    # Train and evaluate models
+    fig, axes = plt.subplots(3, 3, figsize=(18, 15))
+    axes = axes.ravel()
 
-    display_colored_title_message(f'{name} Model')
+    # Train each model and plot confusion matrix
+    for i, (name, model) in enumerate(models):
+        model.fit(X_train, y_train)
+        predicted_y = model.predict(X_test)
 
-    # Print model header with color
-    print(colored(f"Train Accuracy: {scoreTrain:.3f}", 'green'))
-    print(colored(f"Test Accuracy: {scoreTest:.3f}\n", 'green'))
+        scoreTrain = model.score(X_train, y_train)
+        scoreTest = model.score(X_test, y_test)
 
-    # Print classification report with color
-    print(colored("Classification Report:", 'blue'))
-    report = classification_report(y_test, predicted_y)
-    print(colored(report, 'yellow'))
+        display_colored_title_message(f'{name} Model')
 
-    sns.heatmap(confusion_matrix(y_test, predicted_y), annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[i])
-    axes[i].set_title(f"{name} CONFUSION MATRIX", fontsize=14)
+        # Print model header with color
+        print(colored(f"Train Accuracy: {scoreTrain:.3f}", 'green'))
+        print(colored(f"Test Accuracy: {scoreTest:.3f}\n", 'green'))
 
-    evaluate_model(model, name, X_test, y_test)
+        # Print classification report with color
+        print(colored("Classification Report:", 'blue'))
+        report = classification_report(y_test, predicted_y)
+        print(colored(report, 'yellow'))
+
+        sns.heatmap(confusion_matrix(y_test, predicted_y), annot=True, fmt="d", linecolor="k", linewidths=3, ax=axes[i])
+        axes[i].set_title(f"{name} CONFUSION MATRIX", fontsize=14)
+
+        evaluate_model(model, name, X_test, y_test)
+    plt.tight_layout()
+    plt.show()
+
+    return model_metrics
+
+model_metrics = evaluate_confusionMatric_and_plot_models(models, X_train, X_test, y_train, y_test)
+
+def add_scaler_model_metrics(scaler, model_metrics):
+    scaler_model_metrics = {}
+    scaler_model_metrics['scaler'] = scaler
+    scaler_model_metrics['model_metrics'] = model_metrics
+    return scaler_model_metrics
 
 
-plt.tight_layout()
-plt.show()
+
 
 display_colored_message("MODELS COMPARISON...")
 
 ##############################################
 display_colored_message("ROC CURVE AND AUC SCORE...")
-# ROC Curve and AUC Score
 
-# Define dictionaries to store ROC AUC scores and curves
-roc_auc_scores = {}
-fpr_tpr = {}
+# New function ROC Curve and AUC Score
+def calculate_and_plot_roc(models, X_test, y_test):
+    # Define dictionaries to store ROC AUC scores and curves
+    roc_auc_scores = {}
+    fpr_tpr = {}
 
-# Calculate ROC AUC scores and curves for each model
-for name, model in models:
-    y_pred_proba = model.predict_proba(X_test)[:, 1]
-    roc_auc = roc_auc_score(y_test, y_pred_proba)
-    fpr, tpr, p = roc_curve(y_test, y_pred_proba)
-    roc_auc_scores[name] = roc_auc
-    fpr_tpr[name] = (fpr, tpr)
+    # Calculate ROC AUC scores and curves for each model
+    for name, model in models:
+        y_pred_proba = model.predict_proba(X_test)[:, 1]
+        roc_auc = roc_auc_score(y_test, y_pred_proba)
+        fpr, tpr, p = roc_curve(y_test, y_pred_proba)
+        roc_auc_scores[name] = roc_auc
+        fpr_tpr[name] = (fpr, tpr)
 
-# Plot ROC curves
-plt.figure()
-for name in roc_auc_scores:
-    fpr, tpr = fpr_tpr[name]
-    plt.plot(fpr, tpr, label=f'{name} (area = {roc_auc_scores[name]:.2f})')
+    # Plot ROC curves
+    plt.figure()
+    for name in roc_auc_scores:
+        fpr, tpr = fpr_tpr[name]
+        plt.plot(fpr, tpr, label=f'{name} (area = {roc_auc_scores[name]:.2f})')
 
-plt.plot([0, 1], [0, 1], 'r--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic')
-plt.legend(loc="lower right")
-plt.show()
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.show()
+
+calculate_and_plot_roc(models, X_test, y_test)    
 
 ##############################################
 display_colored_message("MODEL METRICS...")
-# Apply styles to highlight the highest metric for each model
-def highlight_max(s):
-    is_max = s == s.max()
-    return ['background-color: yellow' if v else '' for v in is_max]
 
-# Apply the style to the DataFrame
-styled_model_metrics = model_metrics.style.apply(highlight_max, subset=['Accuracy', 'Precision', 'Recall', 'F1-score'])
+#New Fucntion To save and display model metrics
+def save_and_display_model_metrics(model_metrics):
+    # Apply styles to highlight the highest metric for each model
+    def highlight_max(s):
+        is_max = s == s.max()
+        return ['background-color: yellow' if v else '' for v in is_max]
 
-# Save the styled DataFrame to an HTML file
-styled_model_metrics_file = "model_metrics.html"
-styled_model_metrics_html = styled_model_metrics.to_html()
-with open(styled_model_metrics_file, "w") as f:
-    f.write(styled_model_metrics_html)
+    # Apply the style to the DataFrame
+    styled_model_metrics = model_metrics.style.apply(highlight_max, subset=['Accuracy', 'Precision', 'Recall', 'F1-score'])
 
-print("Styled model metrics saved to:", styled_model_metrics_file)
-# Display the HTML output
-display(HTML(styled_model_metrics_html))
+    # Save the styled DataFrame to an HTML file
+    styled_model_metrics_file = "model_metrics.html"
+    styled_model_metrics_html = styled_model_metrics.to_html()
+    with open(styled_model_metrics_file, "w") as f:
+        f.write(styled_model_metrics_html)
 
+    print("Styled model metrics saved to:", styled_model_metrics_file)
+    # Display the HTML output
+    display(HTML(styled_model_metrics_html))
+
+
+save_and_display_model_metrics(model_metrics)
 
 ##############################################
 display_colored_message("EVALUATION METRICS...")
 
-# Define the models and their corresponding evaluation metrics
-models_list = [name for name, model in models]
-metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
+def evalutate_models_metric(models, model_metrics):
+    # Define the models and their corresponding evaluation metrics
+    models_list = [name for name, model in models]
+    metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
 
-# Initialize lists to store the metrics for each model
-accuracies = []
-precisions = []
-recalls = []
-f1_scores = []
+    # Initialize lists to store the metrics for each model
+    accuracies = []
+    precisions = []
+    recalls = []
+    f1_scores = []
 
-# Populate the lists with the metrics for each model
-for model_name in models_list:
-    model_metrics_row = model_metrics[model_metrics['Model'] == model_name].iloc[0]
-    accuracies.append(model_metrics_row['Accuracy'])
-    precisions.append(model_metrics_row['Precision'])
-    recalls.append(model_metrics_row['Recall'])
-    f1_scores.append(model_metrics_row['F1-score'])
+    # Populate the lists with the metrics for each model
+    for model_name in models_list:
+        model_metrics_row = model_metrics[model_metrics['Model'] == model_name].iloc[0]
+        accuracies.append(model_metrics_row['Accuracy'])
+        precisions.append(model_metrics_row['Precision'])
+        recalls.append(model_metrics_row['Recall'])
+        f1_scores.append(model_metrics_row['F1-score'])
 
-#####################
-# Create a DataFrame from the metrics lists
-metrics_df = pd.DataFrame({
-    'Model': models_list,
-    'Accuracy': accuracies,
-    'Precision': precisions,
-    'Recall': recalls,
-    'F1-score': f1_scores
-})
+    #####################
+    # Create a DataFrame from the metrics lists
+    metrics_df = pd.DataFrame({
+        'Model': models_list,
+        'Accuracy': accuracies,
+        'Precision': precisions,
+        'Recall': recalls,
+        'F1-score': f1_scores
+    })
 
-# 3D scatter plot comparison between models
-fig = px.scatter_3d(
-    metrics_df,
-    x='Accuracy',
-    y='Precision',
-    z='Recall',
-    color='F1-score',  # Use F1-score for color to represent overall performance
-    size='F1-score',   # Use F1-score for size to emphasize models with higher F1-scores
-    size_max=18,
-    symbol='Model',    # Use Model for symbols to differentiate between different models
-    opacity=0.7
-)
-
-
-fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
-
-# Display the plot
-fig.show()
-
-
-# 3D scatter plot comparison between models
-fig = px.scatter_3d(
-    metrics_df,
-    x='Accuracy',
-    y='F1-score',
-    z='Precision',  # Use Precision for z-axis
-    color='Model',  # Use Model for color to differentiate between different models
-    size='F1-score',   # Use F1-score for size to emphasize models with higher F1-scores
-    size_max=18,
-    symbol='Model',    # Use Model for symbols to differentiate between different models
-    opacity=0.7
-)
-
-# Update layout for better visualization
-fig.update_layout(
-    title='Model Performance Comparison',
-    scene=dict(
-        xaxis_title='Accuracy',
-        yaxis_title='F1-score',
-        zaxis_title='Precision'
+    # 3D scatter plot comparison between models
+    fig = px.scatter_3d(
+        metrics_df,
+        x='Accuracy',
+        y='Precision',
+        z='Recall',
+        color='F1-score',  # Use F1-score for color to represent overall performance
+        size='F1-score',   # Use F1-score for size to emphasize models with higher F1-scores
+        size_max=18,
+        symbol='Model',    # Use Model for symbols to differentiate between different models
+        opacity=0.7
     )
-)
 
-# Display the figure
-fig.show()
+
+    fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
+
+    # Display the plot
+    #fig.show()
+
+    # 3D scatter plot comparison between models
+    fig = px.scatter_3d(
+        metrics_df,
+        x='Accuracy',
+        y='F1-score',
+        z='Precision',  # Use Precision for z-axis
+        color='Model',  # Use Model for color to differentiate between different models
+        size='F1-score',   # Use F1-score for size to emphasize models with higher F1-scores
+        size_max=18,
+        symbol='Model',    # Use Model for symbols to differentiate between different models
+        opacity=0.7
+    )
+
+    # Update layout for better visualization
+    fig.update_layout(
+        title='Model Performance Comparison',
+        scene=dict(
+            xaxis_title='Accuracy',
+            yaxis_title='F1-score',
+            zaxis_title='Precision'
+        )
+    )
+
+    # Display the figure
+    #fig.show()
+
+
+    ##############################################
+    display_colored_message("MODEL PERFORMANCE BY METRICS...")
+
+    # Bar plot comparison between metrics for each model
+    fig = go.Figure()
+    for model_name in models_list:
+        model_index = models_list.index(model_name)
+        metrics_values = [accuracies[model_index], precisions[model_index], recalls[model_index], f1_scores[model_index]]
+        fig.add_trace(go.Bar(
+            x=metrics,
+            y=metrics_values,
+            name=model_name,
+            marker=dict(color=px.colors.qualitative.Plotly[model_index]),
+            width=0.08
+        ))
+
+    fig.update_layout(
+        barmode='group',
+        title='Model Performance Comparison by Metric',
+        xaxis_title='Metrics',
+        yaxis_title='Score',
+        legend_title='Model',
+        width=1400,  # Adjust the width of the plot
+        height=500  # Optionally adjust the height of the plot
+    )
+    fig.show()
+
+    ##############################################
+    display_colored_message("MODEL RADAR CHART COMPARAISON...")
+    # Radar chart comparison between metrics for each model
+    fig = go.Figure()
+    for model_name in models_list:
+        model_index = models_list.index(model_name)
+        fig.add_trace(go.Scatterpolar(
+            r=[accuracies[model_index], precisions[model_index], recalls[model_index], f1_scores[model_index]],
+            theta=metrics,
+            fill='toself',
+            name=model_name,
+            marker=dict(color=px.colors.qualitative.Plotly[model_index]),
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )),
+        showlegend=True,
+        title='Model Performance Comparison by Metric',
+        width=1200,
+        height=800,
+    )
+    fig.show()
 
 
 ##############################################
-display_colored_message("MODEL PERFORMANCE BY METRICS...")
-
-# Bar plot comparison between metrics for each model
-fig = go.Figure()
-for model_name in models_list:
-    model_index = models_list.index(model_name)
-    metrics_values = [accuracies[model_index], precisions[model_index], recalls[model_index], f1_scores[model_index]]
-    fig.add_trace(go.Bar(
-        x=metrics,
-        y=metrics_values,
-        name=model_name,
-        marker=dict(color=px.colors.qualitative.Plotly[model_index]),
-        width=0.08
-    ))
-
-fig.update_layout(
-    barmode='group',
-    title='Model Performance Comparison by Metric',
-    xaxis_title='Metrics',
-    yaxis_title='Score',
-    legend_title='Model',
-    width=1400,  # Adjust the width of the plot
-    height=500  # Optionally adjust the height of the plot
-)
-fig.show()
-
-##############################################
-display_colored_message("MODEL RADAR CHART COMPARAISON...")
-# Radar chart comparison between metrics for each model
-fig = go.Figure()
-for model_name in models_list:
-    model_index = models_list.index(model_name)
-    fig.add_trace(go.Scatterpolar(
-        r=[accuracies[model_index], precisions[model_index], recalls[model_index], f1_scores[model_index]],
-        theta=metrics,
-        fill='toself',
-        name=model_name,
-        marker=dict(color=px.colors.qualitative.Plotly[model_index]),
-    ))
-
-fig.update_layout(
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-            range=[0, 1]
-        )),
-    showlegend=True,
-    title='Model Performance Comparison by Metric',
-    width=1200,
-    height=800,
-)
-fig.show()
-
-##############################################
-display_colored_message("MODEL PERFORMANCE PARALLEL COORDINATES...")
-# Parallel coordinates plot for model performance
-scores = {'Model': models_list}
-for metric in metrics:
-    scores[metric] = [model_metrics[model_metrics['Model'] == model_name].iloc[0][metric] for model_name in models_list]
-
-parallel_data = pd.DataFrame(scores)
-colors = plt.cm.tab10(range(len(models_list)))
+    display_colored_message("MODEL PERFORMANCE PARALLEL COORDINATES...")
 
 
-plt.figure(figsize=(12, 6))
-parallel_coordinates(parallel_data, 'Model', colormap='viridis', color=colors)
-plt.legend(loc='upper right')
-plt.xlabel('Metrics')
-plt.ylabel('Score')
-plt.xticks(rotation=45)
-plt.title('Parallel Coordinates Plot of Model Performance')
-plt.show()
+    # Parallel coordinates plot for model performance
+    scores = {'Model': models_list}
+    for metric in metrics:
+        scores[metric] = [model_metrics[model_metrics['Model'] == model_name].iloc[0][metric] for model_name in models_list]
 
+    parallel_data = pd.DataFrame(scores)
+    colors = plt.cm.tab10(range(len(models_list)))
+
+    plt.figure(figsize=(12, 6))
+    parallel_coordinates(parallel_data, 'Model', colormap='viridis', color=colors)
+    plt.legend(loc='upper right')
+    plt.xlabel('Metrics')
+    plt.ylabel('Score')
+    plt.xticks(rotation=45)
+    plt.title('Parallel Coordinates Plot of Model Performance')
+    plt.show()
+
+evalutate_models_metric(models, model_metrics)
 
 ##############################################
 display_colored_message("MODEL TEST...")
