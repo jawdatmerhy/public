@@ -984,7 +984,7 @@ def get_scaler(scaler_type):
         # Standardization (Normalization)
         return StandardScaler()
     elif scaler_type == "MINMAX_SCALER":
-        # Min-Max Scaling (Rescaling) 
+        # Min-Max Scaling (Rescaling)
         return MinMaxScaler()
     else:
         return None
@@ -1122,7 +1122,7 @@ def calculate_and_plot_roc(models, X_test, y_test):
     plt.legend(loc="lower right")
     plt.show()
 
-calculate_and_plot_roc(models, X_test, y_test)    
+calculate_and_plot_roc(models, X_test, y_test)
 
 ##############################################
 display_colored_message("MODEL METRICS...")
@@ -1467,7 +1467,7 @@ def display_feature_importance(model, model_name, feature_labels):
 
       feature_indexes_by_importance = importance.argsort()
 
-      display_colored_title_message('Feature importance for {model_name}:')
+      display_colored_title_message(f'Feature importance for {model_name}:')
       for index in feature_indexes_by_importance:
           importance_percentage = importance[index] * 100.0
           feature_name = feature_labels[index]
