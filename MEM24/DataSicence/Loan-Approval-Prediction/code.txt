@@ -337,15 +337,16 @@ else:
     print("Outliers percentage too high > 5%")
 
 ####################################################
-display_colored_message("REMOVE OUTLIERS...")
+display_colored_message("ADDRESS OUTLIERS...")
 
-def winsorize_column(df, column, lower_limit, upper_limit):
-    count = df[df[column] < upper_limit].shape[0]
-    percentile = (df.shape[0] - count) / df.shape[0]
+def winsorize_column(df, column, lower_limit, upper_limit, percentile):
+    count = df[df[column] > upper_limit].shape[0]
+
+    #percentile = (count / df.shape[0])
     display_colored_message(f'{column} [count < {upper_limit}] : {count}', "blue")
     display_colored_message(f'{column} [perc < {upper_limit}] : {percentile}', "blue")
     winsorized_column = f'{column}_winsorized'
-    df[winsorized_column] = winsorize(df[column], limits=(lower_limit, upper_limit))
+    df[winsorized_column] = winsorize(df[column], limits=(0, percentile))
     plot_histograms(df, column, winsorized_column)
     df[column] = df[winsorized_column]
 
@@ -372,17 +373,18 @@ def plot_boxplots(df, columns):
         plt.title(f'Boxplot of {column}')
         plt.show()
 
-
 df_winsorized = df.copy()
 
+lower_bound, upper_bound, potential_outliers = calculate_outliers(df, columns_to_check)
+
 # Winsorize the column 'ApplicantIncome', ApplicantIncome is the column with potential outliers,  ~ 50/614 = 0.0815
-winsorize_column(df_winsorized, 'ApplicantIncome', 0.0001, 0.084)
+winsorize_column(df_winsorized, 'ApplicantIncome', lower_bound['ApplicantIncome'], upper_bound['ApplicantIncome'], 0.084)
 
 # Winsorize the column 'CoapplicantIncome', CoapplicantIncome is the column with potential outliers ~ 18/614 = 0.0295
-winsorize_column(df_winsorized, 'CoapplicantIncome', 0.0001, 0.031)
+winsorize_column(df_winsorized, 'CoapplicantIncome', lower_bound['CoapplicantIncome'], upper_bound['CoapplicantIncome'], 0.031)
 
 # Winsorize the column 'LoanAmount', LoanAmount is the column with potential outliers ~ 41/614 = 0.067
-winsorize_column(df_winsorized, 'LoanAmount', 0.0001, 0.086)
+winsorize_column(df_winsorized, 'LoanAmount', lower_bound['LoanAmount'], upper_bound['LoanAmount'], 0.086)
 
 df[columns_to_check] = df_winsorized[columns_to_check]
 
@@ -405,7 +407,6 @@ plot_pie_chart(percent_outliers)
 plot_stripplot(df, columns_to_check)
 
 plot_boxplots(df, columns_to_check)
-
 
 ##############################################
 display_colored_message("\nchi2 CHECK...")
